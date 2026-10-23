@@ -23,6 +23,7 @@ Geometry_Hemisphere::Geometry_Hemisphere(const struct Simulation_Parameters * si
 {
   geometry_pointer=&(*this);
   geometry_name="Hemisphere";
+  std::cout << "WARNING: the Hemisphere geometry is experimental and has known problems (see README).\n";
   number_of_boundaries=2;
   bc_conditions=std::vector<class BOUNDARY *>(number_of_boundaries);
   boundary_needed_to_be_defined="0 and 1";

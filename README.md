@@ -27,6 +27,11 @@ src/ -> folder containing MarLiCs the source code;
 
 	src/geometry_%%%.(cpp/h) -> the class which define the %%% geometry;
 
+	EXPERIMENTAL geometries (unfinished, do not use for production runs):
+	  hemisphere -> at the rim of the flat base, fill_ki couples surface sites to outside points (frozen Q);
+	  wedge      -> periodic along y although the thickness varies with y; the time integrators diverge;
+	  wedge2     -> symmetric wedge of opening angle wTheta, but normals and surface areas are copied from wedge and ignore wTheta.
+
 	src/initial_conditions.(cpp/h) -> here we define all pre-programed initial conditions; 
 
 	src/integrator.(cpp/h) -> a superclass used to define the any temporal integrator

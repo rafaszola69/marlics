@@ -20,7 +20,8 @@ Geometry_Wedge2::Geometry_Wedge2(const struct Simulation_Parameters * sim_param)
   point_type=fill_point_type( );
   geometry_pointer=&(*this);
 
-  geometry_name="Slab";
+  geometry_name="Wedge2";
+  std::cout << "WARNING: the Wedge2 geometry is experimental and has known problems (see README).\n";
   number_of_boundaries=2;
   bc_conditions=std::vector<class BOUNDARY *>(number_of_boundaries);
   boundary_needed_to_be_defined="0 and 1";
