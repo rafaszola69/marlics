@@ -27,6 +27,7 @@ class Geometry_Custom : public GEOMETRY
   virtual void Energy_calc(double * k_i, const double * Qij) const ;
   virtual void compute_forces(double *, const double * ) const ;
   virtual void test_derivatives(const char integrator[]) const;
+  virtual int backwardPTP(double *, const double * ) const ;
   
   Geometry_Custom(const struct Simulation_Parameters * );
   ~Geometry_Custom(void);

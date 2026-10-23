@@ -29,6 +29,7 @@ class Geometry_Hemisphere : public GEOMETRY
   virtual void fill_ki(double * k_i, const double * Qij) const ;
   virtual void Energy_calc(double * k_i, const double * Qij) const ;
   virtual void compute_forces(double *, const double * ) const ;
+  virtual int backwardPTP(double *, const double * ) const ;
     
 
   Geometry_Hemisphere(const struct Simulation_Parameters * );

@@ -151,7 +151,6 @@ bool FIRE::evolve( double * Qij, double *time, double tf )
     }
     Total_Energy=0;
     sample_geometry->Energy_calc(energy,Qij);
-      std::cout << "time=" << *time << ", Energy=" << Total_Energy << std::endl;
     #pragma omp for simd schedule(simd:dynamic,new_chunk_size) reduction(+: Total_Energy)
         for( ll=0; ll<2*5*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
         

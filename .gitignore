@@ -1,8 +1,5 @@
-#Ignore marlics executables
+build/
 marlics
-marlics.exe
-#Ignore build directories
-build
-buildexe
-#ignore itself
-.gitignore
+marlics_debug
+*.o
+*.csv

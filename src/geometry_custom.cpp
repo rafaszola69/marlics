@@ -447,9 +447,9 @@ int * Geometry_Custom::fill_pt_and_normals( double **v , const char bound_file_n
   FILE *bound_input = fopen(bound_file_name,"r");
   if(bound_input==0){perror(bound_file_name);exit(2);}
   printf("Reading boundaries from %s\n",bound_file_name);
-  char line[500];
+  char *line=(char*)malloc(500);
   std::string testline;
-  fgets(line,500,bound_input);
+  line=fgets(line,500,bound_input);
   testline=line;
   NoV=1+std::count(testline.begin(),testline.end(),',');
   double *var= new double[NoV];
@@ -458,7 +458,7 @@ int * Geometry_Custom::fill_pt_and_normals( double **v , const char bound_file_n
   for (i=0; i<NoV;i++) 
   {
     char names[500];
-    fscanf(bound_input,"%[^,\n ],",names);
+    int dummy=fscanf(bound_input,"%[^,\n ],",names);
     if(strcasecmp(names,"nx")==0)pos_nx=i;
     if(strcasecmp(names,"ny")==0)pos_ny=i;
     if(strcasecmp(names,"nz")==0)pos_nz=i;
@@ -467,7 +467,7 @@ int * Geometry_Custom::fill_pt_and_normals( double **v , const char bound_file_n
   printf("Using the positions of nx %d ny %d nz %d and pt %d.\n ",pos_nx,pos_ny,pos_nz,pos_pt);
   if((point_kind= (int *)calloc(Nx*Ny*Nz, sizeof(int)))==NULL){ERROr}
   line_number=0;
-  fgets(line,500,bound_input);
+  line=fgets(line,500,bound_input);
   for (i=0; i<Nx*Ny*Nz; i++){
     point_kind[i]=1;
   }  
@@ -485,7 +485,7 @@ int * Geometry_Custom::fill_pt_and_normals( double **v , const char bound_file_n
     if (ii>=Nx|| jj>=Ny||kk>=Nz){fprintf(stderr,"Point out of the simulation box at line %d\n",line_number);exit(10);}
     if ((int)var[pos_pt]<0){fprintf(stderr,"Negative Point Type founde at line %d\n\
 Please, use 0 as empty space, 1 as bulk and 2+ as surface point type.\n",line_number);exit(10);}
-    fgets(line,500,bound_input);
+    line=fgets(line,500,bound_input);
              v[(Ny*kk+jj)*Nx+ii][0]=var[pos_nx];
              v[(Ny*kk+jj)*Nx+ii][1]=var[pos_ny];
              v[(Ny*kk+jj)*Nx+ii][2]=var[pos_nz];
@@ -499,3 +499,5 @@ Please, use 0 as empty space, 1 as bulk and 2+ as surface point type.\n",line_nu
 }
 
 int * Geometry_Custom::fill_point_type( void )  const  { return 0;}
+
+int Geometry_Custom::backwardPTP(double *, const double * ) const {}

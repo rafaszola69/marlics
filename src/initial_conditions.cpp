@@ -82,7 +82,18 @@ void apply_initial_conditions(struct Simulation_Parameters * sim_param,double * 
         else if(strcasecmp(sim_param->initial_conditions,"homeo_ansatz")*strcasecmp(sim_param->initial_conditions,"homeotropic_ansatz") == 0 )
           {
             homeotropic_asatz( sim_param, Qij, geometry );
-            
+          }
+        else if(strcasecmp(sim_param->initial_conditions,"Lyre") == 0 )
+          {
+            LoY_asatz( sim_param, Qij, geometry ,2);
+          }
+        else if(strcasecmp(sim_param->initial_conditions,"Yeti") == 0 )
+          {
+            LoY_asatz( sim_param, Qij, geometry ,1);
+          }
+        else if(strcasecmp(sim_param->initial_conditions,"Chi") == 0 )
+          {
+            LoY_asatz( sim_param, Qij, geometry ,3);
           }
         else
           {
@@ -458,7 +469,7 @@ void DSS_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEO
   const int m_i=1;
   const double p0_i=sim_param->p0_i/sim_param->dz;
   
-  std::cout<<"Initiating Zummer Ansatz(r,t,f):\n\n";
+  std::cout<<"Initiating DSS Ansatz(r,t,f):\n\n";
     
     switch(sim_param->ic_flag[5])
     {
@@ -541,7 +552,7 @@ void RSS_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEO
   const int m_i=2;
   const double p0_i=sim_param->p0_i/sim_param->dz;
   
-  std::cout<<"Initiating Zummer Ansatz(r,t,f):\n\n";
+  std::cout<<"Initiating RSS Ansatz(r,t,f):\n\n";
 
     switch(sim_param->ic_flag[5])
     {
@@ -771,7 +782,7 @@ void read_from_file_ic( struct Simulation_Parameters * sim_param, double * Qij, 
   int i,j,k,ii,jj,kk;
   double n[3],l[3],m[3],S,P;    
   FILE * ic_file;
-  char string_placeholder[400];
+  char *string_placeholder=(char*)malloc(400);
   int read_status;
   int reading_line=1;
 
@@ -790,7 +801,7 @@ void read_from_file_ic( struct Simulation_Parameters * sim_param, double * Qij, 
   
   std::cout << "\nReading initial conditions from \"" << sim_param->ic_file_name << "\".\n";
   
-  fgets(string_placeholder,400,ic_file);
+  string_placeholder=fgets(string_placeholder,400,ic_file);
   reading_line++;
   
   //Let's work:
@@ -802,7 +813,7 @@ void read_from_file_ic( struct Simulation_Parameters * sim_param, double * Qij, 
           for(i= 0; i< Nx; i++)
             {
               
-              fgets(string_placeholder,400,ic_file);
+              string_placeholder=fgets(string_placeholder,400,ic_file);
               read_status=sscanf(string_placeholder,"%d,%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",&ii,&jj,&kk,&n[0],&n[1],&n[2],&l[0],&l[1],&l[2],&S,&P);
               read_check(read_status,reading_line);
  
@@ -853,4 +864,101 @@ void read_check(int read_status, int line)
       exit(2);
     }
 
+}
+
+void LoY_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry ,int m_i)
+{
+  //Initiatiate a homogeneously twisted cholesteric along the z sxis
+  int i,j,k;
+  double n[3];  
+
+  const double S_eq=sim_param->S_eq;
+  const int Nx=geometry->Nx;
+  const int Ny=geometry->Ny;
+  const int Nz=geometry->Nz;
+  const int * point_type=geometry->point_type;
+
+  const double p0_i=sim_param->p0_i/sim_param->dz;
+  const double   R0=(sim_param->ic_flag[7]==parameter_status::set)?sim_param->R0_i/(sim_param->dx):Nx/4.0;
+  
+  std::cout<<"Initiating dissociated Chi Ansatz(r,t,f):\n\n";
+
+    switch(sim_param->ic_flag[5])
+    {
+    case parameter_status::set:
+    
+      std::cout << "p0_i=" << p0_i << "\n";
+      break;
+
+    case parameter_status::unset:
+
+      std::cerr<<"Parameter \"m_i\" not set.\nThe initial condition named \"chi\" needs the paramters m_i and \"p0_i\" set for use.\n"<<
+      "Please set them in your in your input file.\n \nAborting the program.\n";
+      exit(1);
+      break;
+    }
+    switch(sim_param->ic_flag[7])
+    {
+    case parameter_status::set:
+    
+      std::cout << "R0_i=" << R0 << "\n";
+      break;
+
+    case parameter_status::unset:
+    
+      std::cout << "Using default value for R0_i=dx*Nx/4=" << (sim_param->dx)*R0 << "\n";
+      
+      break;
+    }
+    double q0i=2*M_PI/(p0_i);
+  double Omega,Rr,Theta, Phi, Psi, Ar, Af, At;
+  
+  for(i= 0; i< Nx; i++)
+    {
+      for(j= 0; j< Ny; j++)
+        {      
+          for(k= 0; k< Nz; k++)
+            {
+             
+              if(point_type[(k*Ny+j)*Nx+i] !=0 )
+                {
+                  double xx=(i-Nx/2);
+                  double yy=(j-Ny/2);
+                  double zz=(k-Nz/2);
+                  Rr=sqrt(xx*xx+yy*yy);
+                  Phi=atan2(yy,xx);
+                  Psi=m_i*0.5*M_PI+q0i*zz;
+                  Omega=M_PI+0.5*M_PI*sin(Psi);
+                  if (!isnormal(Phi))   Phi = 0;
+                  
+                  n[0]=(Rr<R0)?-sin(Phi)*sin(Omega*Rr/R0)*(xx/abs(xx)):cos(Phi+Psi);
+                  n[1]=(Rr<R0)? cos(Phi)*sin(Omega*Rr/R0)*(xx/abs(xx)):sin(Phi+Psi);
+                  n[2]=(Rr<R0)?-cos(Phi)*cos(Omega*Rr/R0):0;
+//~                   n[0]=sin(2*M_PI*Rr/p0_i)*(((Rr>abs(p0_i/2))&&(abs(k-0.5*Nz)<abs(p0_i/2)))?sin(Phi+Psi):cos(Phi));
+//~                   n[1]=sin(2*M_PI*Rr/p0_i)*(((Rr>abs(p0_i/2))&&(abs(k-0.5*Nz)<abs(p0_i/2)))?cos(Phi+Psi):-sin(Phi));
+//~                   n[2]=cos(2*M_PI*Rr/p0_i);//*((Rr<abs(p0_i/2))?        :             ;
+                  if(!isnormal(Theta)&&Theta!=0){n[0]=1.0/sqrt(3);n[1]=1.0/sqrt(3);n[2]=1.0/sqrt(3);}
+                  if(!isnormal(Phi)  &&Phi  !=0){n[0]=1.0/sqrt(3);n[1]=1.0/sqrt(3);n[2]=1.0/sqrt(3);}
+                  Qij[5*(Nx*(Ny*k+j)+i)+0]=(0.5*S_eq*(3.0*n[0]*n[0]-1.0));
+                  Qij[5*(Nx*(Ny*k+j)+i)+1]=(0.5*S_eq*(3.0*n[0]*n[1]));
+                  Qij[5*(Nx*(Ny*k+j)+i)+2]=(0.5*S_eq*(3.0*n[0]*n[2]));
+                  Qij[5*(Nx*(Ny*k+j)+i)+3]=(0.5*S_eq*(3.0*n[1]*n[1]-1.0));
+                  Qij[5*(Nx*(Ny*k+j)+i)+4]=(0.5*S_eq*(3.0*n[1]*n[2]));                
+                }           
+              else
+                {
+    
+                  n[0]=0.0;
+                  n[1]=0.0;
+                  n[2]=1.0;
+                                  
+                  Qij[5*(Nx*(Ny*k+j)+i)+0]=(0.5*(3.0*n[0]*n[0]-1.0));
+                  Qij[5*(Nx*(Ny*k+j)+i)+1]=(0.5*(3.0*n[0]*n[1]));
+                  Qij[5*(Nx*(Ny*k+j)+i)+2]=(0.5*(3.0*n[0]*n[2]));
+                  Qij[5*(Nx*(Ny*k+j)+i)+3]=(0.5*(3.0*n[1]*n[1]-1.0));
+                  Qij[5*(Nx*(Ny*k+j)+i)+4]=(0.5*(3.0*n[1]*n[2]));                     
+                }     
+            }                      
+        }
+    }
 }

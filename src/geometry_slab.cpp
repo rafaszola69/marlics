@@ -483,7 +483,4 @@ int * slab::fill_point_type( void )  const
 }
 
 
-
-
-
-
+int slab::backwardPTP(double *, const double * ) const {}

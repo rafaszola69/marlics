@@ -52,7 +52,7 @@ container::container(struct Simulation_Parameters * sim_param)
         break;
     }
     
-          char first_name[100];
+          char first_name[300];
           char fn[3];
           sprintf(fn,"%d",file_number);
           std::string output_name=output_fname;
@@ -60,7 +60,7 @@ container::container(struct Simulation_Parameters * sim_param)
           if (found!=std::string::npos)
             output_name.replace (found,2,fn);
             
-          sprintf(first_name,"%s/%s", output_folder, output_name.c_str());
+          int dummy=sprintf(first_name,"%s/%s", output_folder, output_name.c_str());
           cout << "First snapshot will written at \"" << first_name <<"\"."<<std::endl;
           
           Nx=sim_param->Nx;
@@ -73,7 +73,7 @@ void container::write_state(double t , const double   * Qij,const int * pt)
 {
 
   FILE * snapshot;
-  char time_stamp[100];
+  char time_stamp[250];
   char fn[FILE_NUMBER_DIGITS];
   int i,j,k;
   double d0, d1, n[3], l[3], data[9];

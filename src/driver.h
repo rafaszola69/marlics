@@ -35,6 +35,8 @@ struct Simulation_Parameters
 
   
   char geometry[200];
+  int Nz2=0;
+  double wTheta=0;
   parameter_status geometry_flag=parameter_status::unset;
   
   /*Just for use in Sphere geometry */
@@ -83,6 +85,7 @@ struct Simulation_Parameters
   std::map<int,double> Wo2;         /* 10^-3 m */
 
   std::map<int,std::string> anchoring_type;
+  std::map<int,std::string> strong_type;  // Tipo de ancoramento forte (planar, etc.)
   
   //electric field parameters:
   parameter_status field_flag[4]={parameter_status::unset,    // [0] elecfieldx flag
@@ -102,13 +105,16 @@ struct Simulation_Parameters
   double theta_i;       /* degrees */
   double phi_i;         /* degrees */ 
   double p0_i;         /* nm */ 
+  double R0_i;         /* nm */ 
   int    m_i;         /* nm */ 
-  parameter_status ic_flag[7]={parameter_status::unset,     // [0] initinal conditions flag
+  parameter_status ic_flag[8]={parameter_status::unset,     // [0] initinal conditions flag
                                parameter_status::unset,     // [1] ic file name  flag
                                parameter_status::unset,     // [2] theta_i flag
                                parameter_status::unset,     // [3] phi_i flag
                                parameter_status::unset,     // [4] rng_seed flag
                                parameter_status::unset,     // [5] p0_i flag
+                               parameter_status::unset,     // [6] m_i flag
+                               parameter_status::unset,     // [7] R0_i flag
                              };
   
   //Integrator Paramters:

@@ -570,6 +570,7 @@ int * Geometry_Hemisphere::fill_point_type( void )  const
   return point_kind;
 }
 
+int Geometry_Hemisphere::backwardPTP(double *, const double * ) const {}
 
 
 

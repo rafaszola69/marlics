@@ -9,14 +9,18 @@
 #include "geometry_sphere.h"
 #include "geometry_hybrid_sphere.h"
 #include "geometry_hemisphere.h"
+#include "geometry_wedge.h"
+#include "geometry_wedge2.h"
 #include "boundary.h"
 #include "integrator.h"
+#include "fire_integrator_el.h" 
 #include "fire_integrator.h" 
 #include "integrator_dp5.h" 
 #include "integrator_dp5_v2.h" 
 #include "integrator_dp5_noise.h" 
 #include "integrator_rk2.h" 
 #include "integrator_euler.h" 
+#include "ptp_minimization.h" 
 #include "initial_conditions.h"
 #include <cstdlib>          
 #include <cstring>
@@ -401,6 +405,14 @@ void driver::setup_Simulation(void)
         {
           LcS_Geometry= new Geometry_Custom( & sim_param);
         }
+      else if ( strcasecmp(sim_param.geometry,"wedge") == 0 )
+        {
+          LcS_Geometry= new Geometry_Wedge( & sim_param);
+        }
+      else if ( strcasecmp(sim_param.geometry,"wedge2") == 0 )
+        {
+          LcS_Geometry= new Geometry_Wedge2( & sim_param);
+        }
       else 
         {
           std::cout << "No geometry named " << sim_param.geometry << " is defined.\nAborting the program.\n\n";
@@ -471,6 +483,19 @@ void driver::setup_Simulation(void)
   
           LcS_Integrator= new FIRE(LcS_Geometry, & sim_param );
           std::cout << "Loading the FIRE integrator.\n\n";
+  
+        }
+      else if ( strcasecmp(sim_param.integrator_type,"FIRE_el") == 0 )
+        {
+  
+          LcS_Integrator= new FIRE_el(LcS_Geometry, & sim_param );
+          std::cout << "Loading the FIRE w/ Euler-Lagrange integrator.\n\n";
+  
+        }
+      else if ( strcasecmp(sim_param.integrator_type,"PTP") == 0 )
+        {
+          LcS_Integrator= new PTP_min(LcS_Geometry, & sim_param );
+          std::cout << "Loading the ptp minimization.\n\n";
   
         }
   
@@ -551,7 +576,7 @@ int driver::parse_input_file(char input_name[])
     std::cout << "Using \"" << input_name << "\" as input file\n\n";
   }
   char parser[80];
-  char garbage[400];
+  char *garbage=(char*)calloc(400,sizeof(char));
   int error_handler;
 
  
@@ -561,28 +586,28 @@ int driver::parse_input_file(char input_name[])
     if ( strcasecmp(parser,"Geometry") == 0 )
         {
           sim_param.geometry_flag=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s",&sim_param.geometry);
+          error_handler=fscanf(input_file,"%200s",sim_param.geometry);
           error_check(error_handler,parser);
                 
           std::cout << "Geometry Used:  " <<  sim_param.geometry << "\n\n";               
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }            
     else if ( strcasecmp(parser,"initial_conditions") == 0 )
         {
           sim_param.ic_flag[0]=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s",&sim_param.initial_conditions);
+          error_handler=fscanf(input_file,"%200s",sim_param.initial_conditions);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
     else if ( strcasecmp(parser,"ic_file") == 0 || strcasecmp(parser,"initial_conditions_file") == 0 || strcasecmp(parser,"input_initial_conditions") == 0 || strcasecmp(parser,"input_initial_conditions_file") == 0)
         {
           sim_param.ic_flag[1]=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s",&sim_param.ic_file_name);
+          error_handler=fscanf(input_file,"%200s",sim_param.ic_file_name);
 
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
     else if ( strcasecmp(parser,"theta_i") == 0 )
@@ -590,7 +615,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.ic_flag[2]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.theta_i);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -599,7 +624,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.ic_flag[3]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.phi_i);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
     else if ( (strcasecmp(parser,"seed") == 0) | (strcasecmp(parser,"rng_seed") == 0))
@@ -607,7 +632,15 @@ int driver::parse_input_file(char input_name[])
           sim_param.ic_flag[4]=parameter_status::set;
           error_handler=fscanf(input_file,"%d",&sim_param.rng_seed);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
+          
+        }
+    else if ( strcasecmp(parser,"p0_i") == 0 )
+        {
+          sim_param.ic_flag[5]=parameter_status::set;
+          error_handler=fscanf(input_file,"%lf",&sim_param.p0_i);
+         error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
           
         }
     else if ( strcasecmp(parser,"m_i") == 0 )
@@ -615,23 +648,22 @@ int driver::parse_input_file(char input_name[])
           sim_param.ic_flag[6]=parameter_status::set;
           error_handler=fscanf(input_file,"%d",&sim_param.m_i);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
-    else if ( strcasecmp(parser,"p0_i") == 0 )
+    else if ( strcasecmp(parser,"R0_i") == 0 )
         {
-          sim_param.ic_flag[5]=parameter_status::set;
-          error_handler=fscanf(input_file,"%lf",&sim_param.p0_i);
-         error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
-          
+          sim_param.ic_flag[7]=parameter_status::set;
+          error_handler=fscanf(input_file,"%lf",&sim_param.R0_i);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"integrator") == 0 || strcasecmp(parser,"integrator_type") == 0 )
         {
           sim_param.integrator_flag=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s",&sim_param.integrator_type);
+          error_handler=fscanf(input_file,"%200s",sim_param.integrator_type);
           error_check(error_handler,parser);
                 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
           
         }
@@ -642,16 +674,16 @@ int driver::parse_input_file(char input_name[])
           
           error_check(error_handler,parser);
                 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
           
         }
     else if ( strcasecmp(parser,"time_print_type") == 0 || strcasecmp(parser,"snapshot_print_frequency_type") == 0 || strcasecmp(parser,"print_time_type") == 0 || strcasecmp(parser,"snap_print_freq_type") == 0)
         {
           sim_param.timeprint_status[0]=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s", &sim_param.print_time_type);
+          error_handler=fscanf(input_file,"%200s", sim_param.print_time_type);
           error_check(error_handler,parser);
-      fgets(garbage,400,input_file);
+      garbage=fgets(garbage,400,input_file);
           
         }
       else if ( strcasecmp(parser,"timeprint") == 0 || strcasecmp(parser,"first_snapshot") ==0 )
@@ -660,7 +692,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.timeprint_status[1]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf", &sim_param.timeprint);   
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
          else if ( strcasecmp(parser,"timeprint_increase_factor") == 0 )
@@ -669,7 +701,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.timeprint_status[2]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf", &sim_param.timeprint_increase_factor);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
          else if ( strcasecmp(parser,"Min_force") == 0 || strcasecmp(parser,"force_treshold") == 0 || strcasecmp(parser,"Minimal_force") == 0)
@@ -677,7 +709,7 @@ int driver::parse_input_file(char input_name[])
 
           error_handler=fscanf(input_file,"%lf", &sim_param.min_force);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
          else if ( strcasecmp(parser,"initial_output_file_number") == 0 ||
@@ -688,7 +720,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%d",&(sim_param.first_output_file_number));
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
          else if ( strcasecmp(parser,"L1") == 0 )
@@ -702,7 +734,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.L1);
 
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"L2")== 0 )
@@ -716,7 +748,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.L2);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
       else if ( strcasecmp(parser,"L3") == 0)
@@ -730,7 +762,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.L3);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"Lq")== 0 || strcasecmp(parser,"L_q")== 0 )
@@ -744,7 +776,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.Lq);
 
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
       
         }
       else if ( strcasecmp(parser,"Ls")== 0 || strcasecmp(parser,"L_s")== 0 )
@@ -758,7 +790,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.Ls);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
       else if ( strcasecmp(parser,"k11") == 0  )
         {
@@ -772,7 +804,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"k22")== 0 )
@@ -785,7 +817,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.elastic_flag=elastic_const_status::Ks;        
           error_handler=fscanf(input_file,"%lf",&sim_param.k22);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
       
         }
       else if ( strcasecmp(parser,"k33") == 0 )
@@ -799,7 +831,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.k33);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"k24") == 0 )
@@ -813,7 +845,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.k24);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"a") == 0 )
@@ -824,7 +856,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"B")== 0 )
@@ -832,7 +864,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.thermal_flag[1]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.B);
           error_check(error_handler,parser);                      
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
       else if ( strcasecmp(parser,"C") == 0 )
         {
@@ -840,7 +872,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.thermal_flag[2]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.C);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
       
         }
       else if ( strcasecmp(parser,"T")== 0 || strcasecmp(parser,"temperature")== 0 )
@@ -849,7 +881,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.thermal_flag[3]=parameter_status::set;;
           error_handler=fscanf(input_file,"%lf",&sim_param.T);
           error_check(error_handler,parser);                      
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
       
         }
       else if ( strcasecmp(parser,"dx") == 0  )
@@ -860,7 +892,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"dy") == 0  )
@@ -870,7 +902,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"dz") == 0  )
@@ -881,7 +913,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"p0") == 0 )
@@ -890,7 +922,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.p0);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"q0") == 0 )
@@ -900,16 +932,16 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",&sim_param.q0);
           error_check(error_handler,parser);
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if (strcasecmp(parser,"output_folder") == 0 || strcasecmp(parser,"out_folder") == 0)
         {
 
           sim_param.output_name_status[0]=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s",&sim_param.output_folder);
+          error_handler=fscanf(input_file,"%200s",sim_param.output_folder);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -917,9 +949,9 @@ int driver::parse_input_file(char input_name[])
         {
 
           sim_param.output_name_status[1]=parameter_status::set;
-          error_handler=fscanf(input_file,"%200s",&sim_param.output_fname);
+          error_handler=fscanf(input_file,"%200s",sim_param.output_fname);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -929,7 +961,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.time_status[1]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.tf);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -939,7 +971,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.time_status[0]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.ti);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if (strcasecmp(parser,"dt") == 0 || strcasecmp(parser,"timestep") ==0 )
@@ -948,7 +980,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.time_status[2]=parameter_status::set;
           error_handler=fscanf(input_file,"%lf",&sim_param.dt);
           error_check(error_handler,parser);
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }      
       else if ( strcasecmp(parser,"bulk_viscosity") == 0  || strcasecmp(parser,"bviscosity") == 0 || strcasecmp(parser,"bulk_visc") == 0 || strcasecmp(parser,"gamma1") == 0 || strcasecmp(parser,"gamma_1") == 0 )
@@ -957,7 +989,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.viscosity_flag[0]=viscosity_status::gamma;
           error_handler=fscanf(input_file, "%lf",&sim_param.gamma_1 );
           error_check(error_handler,parser);      
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"surface_viscosity") == 0  || strcasecmp(parser,"sviscosity") == 0 || strcasecmp(parser,"surface_visc") == 0 || strcasecmp(parser,"gamma_1_s") == 0 || strcasecmp(parser,"gamma_s") == 0 )
@@ -966,7 +998,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.viscosity_flag[1]=viscosity_status::gamma;
           error_handler=fscanf(input_file, "%lf",&sim_param.gamma_1_s );
           error_check(error_handler,parser);      
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
       else if (strcasecmp(parser,"mu_1") == 0  || strcasecmp(parser,"mu1") == 0 )
@@ -975,7 +1007,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.viscosity_flag[0]=viscosity_status::mu;
           error_handler=fscanf(input_file, "%lf",&sim_param.mu_1 );
           error_check(error_handler,parser);      
-          fgets(garbage,400,input_file);          
+          garbage=fgets(garbage,400,input_file);          
         }
       else if (strcasecmp(parser,"mu_1_s") == 0  || strcasecmp(parser,"mu1_s") == 0 )
         {
@@ -983,7 +1015,7 @@ int driver::parse_input_file(char input_name[])
           sim_param.viscosity_flag[1]=viscosity_status::mu;
           error_handler=fscanf(input_file, "%lf",&sim_param.mu_1_s );
           error_check(error_handler,parser);      
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
       else if ( strcasecmp(parser,"Nx") == 0)
@@ -992,7 +1024,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%i",&sim_param.Nx);
           error_check(error_handler,parser);
                 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"Ny")== 0 )
@@ -1001,7 +1033,7 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%i",&sim_param.Ny);
 
           error_check(error_handler,parser);                      
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
       
         }
       else if ( strcasecmp(parser,"Nz") == 0 )
@@ -1010,15 +1042,15 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%i",&sim_param.Nz);
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"bound_fname") == 0 || strcasecmp(parser,"bound_file") == 0 || strcasecmp(parser,"boundary_file") == 0 || strcasecmp(parser,"boundary_file_name") == 0 )
         {
-          error_handler=fscanf(input_file,"%s",&sim_param.bound_fname);
+          error_handler=fscanf(input_file,"%s",sim_param.bound_fname);
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"anchoring_type") == 0 )
@@ -1028,12 +1060,12 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
 
           char anc_type[200];
-          error_handler=fscanf(input_file,"%200s",& anc_type);
+          error_handler=fscanf(input_file,"%200s", anc_type);
           error_check(error_handler,parser);
           
           sim_param.anchoring_type[nn]=std::string(anc_type);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }
       else if ( strcasecmp(parser,"Wo1") == 0  )
@@ -1048,7 +1080,7 @@ int driver::parse_input_file(char input_name[])
 
           sim_param.Wo1[nn]=Wo1;
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
     else if ( strcasecmp(parser,"Wo2") == 0  )
@@ -1061,9 +1093,9 @@ int driver::parse_input_file(char input_name[])
           error_handler=fscanf(input_file,"%lf",& Wo2);
           error_check(error_handler,parser);              
 
-          sim_param.Wo1[nn]=Wo2;
+          sim_param.Wo2[nn]=Wo2;
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
       else if ( strcasecmp(parser,"phi_0") == 0  )
@@ -1078,7 +1110,7 @@ int driver::parse_input_file(char input_name[])
 
           sim_param.phi_0[nn]=phi_0;
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }
       else if ( strcasecmp(parser,"theta_0") == 0  )
@@ -1094,7 +1126,7 @@ int driver::parse_input_file(char input_name[])
 
           sim_param.theta_0[nn]=theta_0;
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
           
         }      
       else if ( strcasecmp(parser,"atol") == 0  || strcasecmp(parser,"Absolute_Tolerance") == 0 )
@@ -1106,7 +1138,7 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
                 
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -1118,7 +1150,7 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
                 
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -1130,7 +1162,7 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
                 
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -1143,7 +1175,7 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
                 
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -1155,7 +1187,7 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
                 
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
 
         }
@@ -1166,7 +1198,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
        else if ( strcasecmp(parser,"elecfieldy") == 0 || strcasecmp(parser,"electric_field_y") == 0  )
         {
@@ -1175,7 +1207,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
        else if ( strcasecmp(parser,"elecfieldz") == 0 || strcasecmp(parser,"electric_field_z") == 0  )
         {
@@ -1184,7 +1216,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
        else if ( strcasecmp(parser,"deltaepsilon") == 0 || strcasecmp(parser,"delta_epsilon") == 0  )
         {
@@ -1193,7 +1225,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"R_in") == 0  )
         {
@@ -1202,7 +1234,7 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
         }
         else if ( strcasecmp(parser,"R_ex") == 0  )
         {
@@ -1211,7 +1243,19 @@ int driver::parse_input_file(char input_name[])
 
           error_check(error_handler,parser);
           
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
+        }
+      else if ( strcasecmp(parser,"Nz2") == 0)
+        {
+          error_handler=fscanf(input_file,"%i",&sim_param.Nz2);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+      else if ( strcasecmp(parser,"wtheta") == 0)
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.wTheta);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
         }
       else if (strcasecmp(parser,"run") == 0)
         {
@@ -1219,11 +1263,11 @@ int driver::parse_input_file(char input_name[])
 
           return 1;
 
-        }         
+        }
       else if (parser[0]=='#')
         {
 
-          fgets(garbage,400,input_file);
+          garbage=fgets(garbage,400,input_file);
 
         }         
       else

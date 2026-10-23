@@ -28,6 +28,7 @@ class GEOMETRY
   virtual void fill_ki(double * k_i, const  double * Qij) const = 0;
   virtual void compute_forces(double * k_i, const  double * Qij) const = 0;
   virtual void Energy_calc(double * fij, const  double * Qij) const = 0;
+  virtual int backwardPTP(double *, const double * ) const =0 ;
 
   const int *point_type;
   int number_of_boundaries;  

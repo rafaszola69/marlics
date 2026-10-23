@@ -616,3 +616,5 @@ int * Geometry_Hybrid_Sphere::fill_point_type( void )  const
 
   return point_kind;
 }
+
+int Geometry_Hybrid_Sphere::backwardPTP(double *, const double * ) const {}

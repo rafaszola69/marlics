@@ -71,16 +71,11 @@ Geometry_Sphere::Geometry_Sphere(const struct Simulation_Parameters * sim_param)
    point_type=fill_point_type( );
 };
 
-
-
-
 Geometry_Sphere::~Geometry_Sphere()
 {
   
   
 }
-
- 
 
 void  Geometry_Sphere::fill_ki(double * k_i,
 			       const double * Qij)  const 
@@ -214,7 +209,6 @@ void  Geometry_Sphere::fill_ki(double * k_i,
     }
   
 }
-
 
 void  Geometry_Sphere::compute_forces(double * k_i, const double * Qij)  const 
 {
@@ -496,4 +490,136 @@ int * Geometry_Sphere::fill_point_type( void )  const
     }
 
   return point_kind;
+}
+
+int  Geometry_Sphere::backwardPTP(double * k_i, const double * Qij)  const 
+{
+  int maxSteps=0;
+  #pragma omp single
+  for( int k= 0; k< Nz; k++)
+  {
+    for( int j= 0; j< Ny; j++)
+    {
+      for( int i= 0; i< Nx; i++)
+      {
+        int ip1,jp1,kp1, im1, jm1, km1, ll;
+        double dQ[15];
+        double ddQ[30];
+        double QN[5];
+        double v[3];
+        int step=0;
+        bool cont=true;
+        if(point_type[(k*Ny+j)*Nx+i] == 1)
+        {
+          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
+          while(cont)
+          {
+          double maxVariation=0;
+            //check_bulk_limits( i,  j,  k);                    
+            ip1= (i+1);
+            jp1= (j+1);
+            kp1= (k+1);
+            im1= (i-1);
+            jm1= (j-1);
+            km1= (k-1);
+      
+      
+            //Calcule first derivatives of Qij:
+            for(ll=0; ll<=4;ll++) dQ[ll]   = 0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
+            for(ll=0; ll<=4;ll++) dQ[5+ll] = 0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
+            for(ll=0; ll<=4;ll++) dQ[10+ll]= 0.5*(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
+      
+            //Calculate second derivatives of Qij:
+            for(ll=0; ll<=4;ll++) ddQ[ll]   = (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1*dx_1; //dx2
+            for(ll=0; ll<=4;ll++) ddQ[ll+5] = 0.25*(Qij[5*((k*Ny+jp1)*Nx+ip1)+ll]+Qij[5*((k*Ny+jm1)*Nx+im1)+ll]-Qij[5*((k*Ny+jp1)*Nx+im1)+ll]-Qij[5*((k*Ny+jm1)*Nx+ip1)+ll])*dx_1*dy_1; //dxdy
+            for(ll=0; ll<=4;ll++) ddQ[10+ll]= 0.25*(Qij[5*((kp1*Ny+j)*Nx+ip1)+ll]+Qij[5*((km1*Ny+j)*Nx+im1)+ll]-Qij[5*((kp1*Ny+j)*Nx+im1)+ll]-Qij[5*((km1*Ny+j)*Nx+ip1)+ll])*dx_1*dz_1; //dxdz
+            for(ll=0; ll<=4;ll++) ddQ[15+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1*dy_1; //dy2
+            for(ll=0; ll<=4;ll++) ddQ[20+ll]= 0.25*(Qij[5*((kp1*Ny+jp1)*Nx+i)+ll]+Qij[5*((km1*Ny+jm1)*Nx+i)+ll]-Qij[5*((kp1*Ny+jm1)*Nx+i)+ll]-Qij[5*((km1*Ny+jp1)*Nx+i)+ll])*dz_1*dy_1; //dydz
+            for(ll=0; ll<=4;ll++) ddQ[25+ll]= (Qij[5*((kp1*Ny+j)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1*dz_1; //dz2
+      
+            k_i[5*(Nx*(Ny*k+j)+i)+0]=bulk_energy.functional_derivative_00(QN,dQ,ddQ,v); 
+            k_i[5*(Nx*(Ny*k+j)+i)+1]=bulk_energy.functional_derivative_01(QN,dQ,ddQ,v); 
+            k_i[5*(Nx*(Ny*k+j)+i)+2]=bulk_energy.functional_derivative_02(QN,dQ,ddQ,v); 
+            k_i[5*(Nx*(Ny*k+j)+i)+3]=bulk_energy.functional_derivative_11(QN,dQ,ddQ,v); 
+            k_i[5*(Nx*(Ny*k+j)+i)+4]=bulk_energy.functional_derivative_12(QN,dQ,ddQ,v);
+            for(ll=0; ll<=4;ll++) maxVariation=(maxVariation<fabs(k_i[5*(Nx*(Ny*k+j)+i)+ll]))?fabs(k_i[5*(Nx*(Ny*k+j)+i)+ll]):maxVariation;
+            for(ll=0; ll<=4;ll++)QN[ll]+=0.1*k_i[5*(Nx*(Ny*k+j)+i)+ll];
+            if (maxVariation<1e-10) cont=false;
+            step++;
+          }
+          if(maxSteps<step){maxSteps=step;
+                            printf("%d\n",maxSteps); fflush(stdout);}
+          //~ printf("point:(%03d,%03d,%03d) solved in %d steps\n",i,j,k,step);
+          step=0;
+          for(ll=0; ll<=4;ll++) k_i[5*(Nx*(Ny*k+j)+i)+ll]=QN[ll]-Qij[5*(Nx*(Ny*k+j)+i)+ll];
+        }  
+        else if( point_type[(k*Ny+j)*Nx+i] == 2 )
+        {
+          bool cont=true;
+            for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
+          while(cont)
+          {
+          double maxVariation=0;
+            //check_surface_limits( i,  j,  k);
+            double delta_x,delta_y,delta_z;
+            double rr;
+            double v[3];
+            int lmax;
+            
+            delta_x=(i-HNx)*dx;
+            delta_y=(j-HNy)*dy;
+            delta_z=(k-HNz)*dz;
+            rr=sqrt( delta_x*delta_x+delta_y*delta_y+delta_z*delta_z);
+                              
+            v[0]=delta_x/rr;
+            v[1]=delta_y/rr;
+            v[2]=delta_z/rr;
+            //Boundary condtions:
+      
+            ip1= i>=Nx/2 ? i   : i+1 ;
+            jp1= j>=Ny/2 ? j   : j+1 ;
+            kp1= k>=Nz/2 ? k   : k+1 ;
+        
+            im1= i>=Nx/2 ? i-1 : i ;
+            jm1= j>=Ny/2 ? j-1 : j ;
+            km1= k>=Nz/2 ? k-1 : k ;
+      
+            
+            //Calcule first derivatives of Qij:
+            for(ll=0; ll<=4;ll++) dQ[ll]=   (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
+            for(ll=0; ll<=4;ll++) dQ[5+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;      
+            for(ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
+      
+            k_i[5*(Nx*(Ny*k+j)+i)+0]= bc_conditions[0]->functional_derivative_00(QN,dQ,ddQ,v);
+            k_i[5*(Nx*(Ny*k+j)+i)+1]= bc_conditions[0]->functional_derivative_01(QN,dQ,ddQ,v);
+            k_i[5*(Nx*(Ny*k+j)+i)+2]= bc_conditions[0]->functional_derivative_02(QN,dQ,ddQ,v);
+            k_i[5*(Nx*(Ny*k+j)+i)+3]= bc_conditions[0]->functional_derivative_11(QN,dQ,ddQ,v);
+            k_i[5*(Nx*(Ny*k+j)+i)+4]= bc_conditions[0]->functional_derivative_12(QN,dQ,ddQ,v);
+            for(ll=0; ll<=4;ll++) if(maxVariation<fabs(k_i[5*(Nx*(Ny*k+j)+i)+ll])){lmax=ll; maxVariation=fabs(k_i[5*(Nx*(Ny*k+j)+i)+ll]);}
+            for(ll=0; ll<=4;ll++)QN[ll]+=0.01*k_i[5*(Nx*(Ny*k+j)+i)+ll];
+            if (maxVariation<1e-3) cont=false;
+            printf("%d,%d, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g, %g\n",step,lmax,maxVariation,QN[0],k_i[5*(Nx*(Ny*k+j)+i)+0],QN[1],k_i[5*(Nx*(Ny*k+j)+i)+1],QN[2],k_i[5*(Nx*(Ny*k+j)+i)+2],QN[3],k_i[5*(Nx*(Ny*k+j)+i)+3],QN[4],k_i[5*(Nx*(Ny*k+j)+i)+4]);
+            step++;
+            if(step>1e5) exit(1);
+          }
+          if(maxSteps<step){maxSteps=step;
+                            printf("%d\n",maxSteps); fflush(stdout);}
+          //~ printf("point:(%03d,%03d,%03d) solved in %d steps\n",i,j,k,step);
+          step=0;
+          for(ll=0; ll<=4;ll++) k_i[5*(Nx*(Ny*k+j)+i)+ll]=QN[ll]-Qij[5*(Nx*(Ny*k+j)+i)+ll];
+        
+        }
+        else
+        {
+          k_i[5*(Nx*(Ny*k+j)+i)+0]=0.; 
+          k_i[5*(Nx*(Ny*k+j)+i)+1]=0.; 
+          k_i[5*(Nx*(Ny*k+j)+i)+2]=0.; 
+          k_i[5*(Nx*(Ny*k+j)+i)+3]=0.; 
+          k_i[5*(Nx*(Ny*k+j)+i)+4]=0.;
+        }
+      }
+    }
+  }
+  printf("%d\n",maxSteps);fflush(stdout);
+  return maxSteps;
 }

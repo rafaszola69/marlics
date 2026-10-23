@@ -214,6 +214,7 @@ int * Geometry_Bulk::fill_point_type( void )  const
 }
 
 
+int Geometry_Bulk::backwardPTP(double *, const double * ) const {}
 
 
 
