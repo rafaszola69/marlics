@@ -8,3 +8,4 @@ homeotropic_droplets/runs/
 homeotropic_droplets/*.log
 build_gpu/
 marlics_gpu
+!tests/gpu/custom.csv
