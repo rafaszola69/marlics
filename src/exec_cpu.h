@@ -13,10 +13,6 @@
 #include "physics.h"
 #include "geometry.h"
 
-#define MARLICS_LAMBDA [=] MARLICS_HD
-
-struct SumSumMax { double sum0, sum1, max; };
-
 class CpuExec
 {
  public:

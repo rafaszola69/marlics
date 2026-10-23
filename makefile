@@ -47,7 +47,7 @@ ${TESTS}: build/%: tests/%.cpp ${LIB_OBJS} ${HEADER} | build
 NVCC      := nvcc
 CUDA_HOST ?= g++
 CUDA_ARCH ?= -gencode arch=compute_70,code=compute_70
-NVFLAGS   := -O3 -std=c++14 --expt-extended-lambda -ccbin ${CUDA_HOST} ${CUDA_ARCH} -Xcompiler -fopenmp -Isrc
+NVFLAGS   := -O3 -std=c++14 --expt-extended-lambda -Xcudafe --diag_suppress=177 -ccbin ${CUDA_HOST} ${CUDA_ARCH} -Xcompiler -fopenmp -Isrc
 GPU_FLAGS := $(filter-out -static,${FLAGS})
 GPU_OBJS  := $(patsubst src/%.cpp,build_gpu/%.o,$(filter-out src/gpu_stub.cpp,${CPPS})) build_gpu/gpu_cuda.o
 

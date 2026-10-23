@@ -14,12 +14,8 @@
 #include "lattice.h"
 #include "geometry.h"
 
-#define MARLICS_LAMBDA [=] MARLICS_HD
-
 #define CUDA_CHECK(call) do { cudaError_t err_=(call); if(err_!=cudaSuccess) { \
   fprintf(stderr,"CUDA error %s at %s:%d\n",cudaGetErrorString(err_),__FILE__,__LINE__); exit(20);} } while(0)
-
-struct SumSumMax { double sum0, sum1, max; };
 
 namespace gpu
 {

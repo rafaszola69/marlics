@@ -11,6 +11,12 @@
 #define MARLICS_HD
 #endif
 
+//Element-wise work of the integrators, run by an executor (exec_cpu.h, gpu/exec_cuda.h).
+#define MARLICS_LAMBDA [=] MARLICS_HD
+
+//Result of the executors' combined reduction (two sums and a maximum).
+struct SumSumMax { double sum0, sum1, max; };
+
 //Landau-de Gennes bulk parameters (see ENERGY for units).
 struct BulkParams
 {
