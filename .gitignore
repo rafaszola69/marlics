@@ -4,3 +4,5 @@ marlics_debug
 *.o
 *.csv
 figs/
+homeotropic_droplets/runs/
+homeotropic_droplets/*.log
