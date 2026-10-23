@@ -41,9 +41,38 @@ test: ${TESTS}
 ${TESTS}: build/%: tests/%.cpp ${LIB_OBJS} ${HEADER} | build
 	@${COMPILER} ${FLAGS} -Isrc $< ${LIB_OBJS} ${LIB} -o $@
 
+######### GPU build (make gpu): marlics_gpu runs on the CPU, or on the GPU with "device gpu" in the input.
+# CUDA_HOST: host compiler used by nvcc (old nvcc versions need an old g++, e.g. CUDA 9.1: CUDA_HOST=g++-6).
+# CUDA_ARCH: compute_70 PTX is compiled by the driver for newer cards; use e.g. -arch=sm_75 with CUDA >= 10.
+NVCC      := nvcc
+CUDA_HOST ?= g++
+CUDA_ARCH ?= -gencode arch=compute_70,code=compute_70
+NVFLAGS   := -O3 -std=c++14 --expt-extended-lambda -ccbin ${CUDA_HOST} ${CUDA_ARCH} -Xcompiler -fopenmp -Isrc
+GPU_FLAGS := $(filter-out -static,${FLAGS})
+GPU_OBJS  := $(patsubst src/%.cpp,build_gpu/%.o,$(filter-out src/gpu_stub.cpp,${CPPS})) build_gpu/gpu_cuda.o
+
+gpu: marlics_gpu
+marlics_gpu: ${GPU_OBJS}
+	@${COMPILER} ${GPU_FLAGS} ${GPU_OBJS} ${LIB} -lcudart -o marlics_gpu
+build_gpu/%.o: src/%.cpp ${HEADER} | build_gpu
+	@${COMPILER} ${GPU_FLAGS} -c $< -o $@
+build_gpu/gpu_cuda.o: src/gpu/gpu.cu $(wildcard src/gpu/*.h) ${HEADER} | build_gpu
+	@${NVCC} ${NVFLAGS} -c $< -o $@
+build_gpu:
+	@mkdir build_gpu
+
+######### GPU consistency test (make test-gpu): GPU and CPU forces, energies and relaxations agree
+test-gpu: build_gpu/test_gpu
+	@./build_gpu/test_gpu 2>&1 >build_gpu/test_gpu.log && echo "GPU test passed." || (echo "GPU TEST FAILED."; exit 1)
+GPU_LIB_OBJS := $(filter-out build_gpu/main.o build_gpu/gpu_cuda.o,${GPU_OBJS})
+build_gpu/test_gpu: build_gpu/test_gpu_cuda.o ${GPU_LIB_OBJS}
+	@${COMPILER} ${GPU_FLAGS} build_gpu/test_gpu_cuda.o ${GPU_LIB_OBJS} ${LIB} -lcudart -o $@
+build_gpu/test_gpu_cuda.o: tests/gpu/test_gpu.cu src/gpu/gpu.cu $(wildcard src/gpu/*.h) ${HEADER} | build_gpu
+	@${NVCC} ${NVFLAGS} -Isrc/gpu -c $< -o $@
+
 ########
 clean:
-	@rm -f marlics marlics_debug
-	@rm -fr build
+	@rm -f marlics marlics_debug marlics_gpu
+	@rm -fr build build_gpu
 	@rm -f *.csv
 	@rm -f *.o

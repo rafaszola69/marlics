@@ -14,6 +14,8 @@
 #include "boundary.h"
 #include "integrator.h"
 #include "exec_cpu.h"
+#include "integrator_factory.h"
+#include "gpu.h"
 #include "fire_integrator.h"
 #include "integrator_dp5.h" 
 #include "integrator_dp5_noise.h" 
@@ -440,56 +442,24 @@ void driver::setup_Simulation(void)
       
     case parameter_status::set:
 
-      if ( strcasecmp(sim_param.integrator_type,"DP5m") == 0 ||strcasecmp(sim_param.integrator_type,"DP5") == 0 || strcasecmp(sim_param.integrator_type,"Dormand-Prince_m") == 0
-           || strcasecmp(sim_param.integrator_type,"Rk54m") == 0 || strcasecmp(sim_param.integrator_type,"Rk5m") == 0 )
+      if ( strcasecmp(sim_param.device,"gpu") == 0 )
         {
-  
-          LcS_Integrator= new DP5<CpuExec>(LcS_Geometry, & sim_param, dormand_prince_m );
-          std::cout << "Loading the Dormand-Prince5(4)m integrator.\n\n";
-  
+          std::cout << "Running on the GPU.\n";
+          LcS_Integrator= make_gpu_integrator(LcS_Geometry, & sim_param);
+          if(LcS_Integrator==NULL)
+            {
+              std::cout << "The integrator " << sim_param.integrator_type << " has no GPU version.\nAborting the program.\n\n";
+              exit(2);
+            }
         }
-      else if ( strcasecmp(sim_param.integrator_type,"DP5s") == 0 || strcasecmp(sim_param.integrator_type,"Dormand-Prince_s") == 0
-           || strcasecmp(sim_param.integrator_type,"Rk54s") == 0 || strcasecmp(sim_param.integrator_type,"Rk5s") == 0 )
+      else if ( (LcS_Integrator= make_integrator<CpuExec>(LcS_Geometry, & sim_param)) != NULL )
         {
-  
-          LcS_Integrator= new DP5<CpuExec>(LcS_Geometry, & sim_param, dormand_prince_s );
-          std::cout << "Loading the Dormand-Prince5(4)s integrator.\n\n";
-  
-        }
-      else if ( strcasecmp(sim_param.integrator_type,"RK2") == 0 || strcasecmp(sim_param.integrator_type,"Runge-Kutta2") == 0)
-        {
-  
-          LcS_Integrator= new RK2<CpuExec>(LcS_Geometry, & sim_param );
-          std::cout << "Loading the Runge-Kutta2 integrator.\n\n";
-  
         }
       else if ( strcasecmp(sim_param.integrator_type,"noise_DP5") == 0 || strcasecmp(sim_param.integrator_type,"DP5_noise") == 0)
         {
   
           LcS_Integrator= new NOISE_DP5(LcS_Geometry, & sim_param );
           std::cout << "Loading the Dormand-Prince5(4) integrator with noise.\n\n";
-  
-        }
-      else if ( strcasecmp(sim_param.integrator_type,"RK1") == 0 || strcasecmp(sim_param.integrator_type,"Euler") == 0)
-        {
-  
-          LcS_Integrator= new Euler<CpuExec>(LcS_Geometry, & sim_param );
-          std::cout << "Loading the Euler integrator.\n\n";
-  
-        }
-      else if ( strcasecmp(sim_param.integrator_type,"FIRE") == 0 )
-        {
-  
-          LcS_Integrator= new FIRE<CpuExec>(LcS_Geometry, & sim_param );
-          std::cout << "Loading the FIRE integrator.\n\n";
-  
-        }
-      else if ( strcasecmp(sim_param.integrator_type,"FIRE_el") == 0 )
-        {
-  
-          //Kept for old input files: same as FIRE, with the alpha values the former FIRE_el used.
-          LcS_Integrator= new FIRE<CpuExec>(LcS_Geometry, & sim_param, 0.4, 0.3 );
-          std::cout << "Loading the FIRE integrator (FIRE_el alpha parameters).\n\n";
   
         }
       else if ( strcasecmp(sim_param.integrator_type,"PTP") == 0 )
@@ -666,6 +636,17 @@ int driver::parse_input_file(char input_name[])
           garbage=fgets(garbage,400,input_file);
 
           
+        }
+    else if ( strcasecmp(parser,"device") == 0 )
+        {
+          error_handler=fscanf(input_file,"%19s",sim_param.device);
+          error_check(error_handler,parser);
+          if( strcasecmp(sim_param.device,"cpu")!=0 && strcasecmp(sim_param.device,"gpu")!=0 )
+            {
+              std::cout << "device must be cpu or gpu (found " << sim_param.device << ").\nAborting the program.\n";
+              exit(1);
+            }
+          garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"noise_factor") == 0)
         {

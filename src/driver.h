@@ -120,6 +120,7 @@ struct Simulation_Parameters
   //Integrator Paramters:
 
   char integrator_type[200];  
+  char device[20]="cpu";    //cpu or gpu
   double Atol=0.001;
   double Rtol=0.001;
   double prefac=0.8;

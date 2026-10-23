@@ -33,6 +33,7 @@ struct LatticeView
   int n_surface;
   const SurfaceSite * surface;
   BulkParams bulk;
+  int n_bc;
   const BoundaryParams * bc;
 };
 

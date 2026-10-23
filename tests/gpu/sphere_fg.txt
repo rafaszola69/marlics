@@ -1,0 +1,41 @@
+# GPU vs CPU check (tests/gpu/test_gpu.cu): every elastic term and the field on.
+Nx 17
+Ny 17
+Nz 17
+a  0.086
+B -2.12
+C  1.74
+T  -1.0
+L1 6.0
+L2 3.0
+L3 2.0
+Ls 1.0
+Lq 5.0
+p0 60.0
+mu_1 0.3
+mu_1_s 3.0
+dx 5.0
+dy 5.0
+dz 5.0
+dt 0.001
+tf 1
+time_print_type linear
+timeprint 1
+timeprint_increase_factor 1
+initial_conditions random
+theta_i 45.0
+phi_i 45.0
+seed 1234
+initial_output_file_number 0
+output_folder build_gpu
+electric_field_x 0.1
+electric_field_y 0.2
+electric_field_z 0.3
+delta_epsilon 5
+min_force 1e-4
+geometry sphere
+integrator dp5
+anchoring_type 0 fg
+Wo1 0 2.0
+Wo2 0 1.0
+run

@@ -6,3 +6,5 @@ marlics_debug
 figs/
 homeotropic_droplets/runs/
 homeotropic_droplets/*.log
+build_gpu/
+marlics_gpu

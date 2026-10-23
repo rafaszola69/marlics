@@ -76,6 +76,7 @@ LatticeView GEOMETRY::view( void ) const
   L.n_surface=surface.size();
   L.surface=surface.data();
   L.bulk=bulk_energy.bulk();
+  L.n_bc=boundary_params.size();
   L.bc=boundary_params.data();
   return L;
 }
