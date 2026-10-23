@@ -49,8 +49,10 @@ auxiliar/ -> some auxiliar files to aid the user;
 examples/ -> a series of MarLiCs usage examples;
 
 notebook/ -> Some Mathematica nb files used to evaluate symbolically the functional derivatives.
+
+tests/ -> consistency tests, run with "make test" (about 15 s). They check that the dynamics (fill_ki) is the gradient of the reported energy, that the anchoring energies match their functional derivatives, that DP5 never increases the energy and that FIRE converges to a stationary state. Run them after changing energies, boundaries, geometries or integrators;
 	
-makefile -> a makefile used to compile the code
+makefile -> a makefile used to compile the code (make), or to compile and run the tests (make test)
 
 Windows_makefile -> a makefile to compile a windows executable under a GNU environment
 

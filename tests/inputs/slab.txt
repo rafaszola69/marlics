@@ -1,0 +1,47 @@
+# Hybrid slab: homeotropic bottom, planar Rapini-Papoular top (used by test_relaxation)
+geometry slab
+integrator DP5
+Nx 4
+Ny 4
+Nz 30
+a  0.086
+B -2.12
+C  1.74
+k11 16.7
+k22 7.8
+k33 18.1
+T   -1.0
+atol 1e-5
+rtol 1e-5
+facmax 3.0
+facmin 0.4
+prefac 0.8
+p0        100.0
+mu_1      0.3
+mu_1_s    3.0
+dx        5.0
+dy        5.0
+dz        5.0
+dt        0.001
+tf        20.0
+time_print_type	          linear
+timeprint                 20
+timeprint_increase_factor 10
+initial_conditions          random
+theta_i 45.0
+phi_i   45.0
+initial_output_file_number   0
+output_folder   build
+electric_field_x 0.0
+electric_field_y 0.0
+electric_field_z 0.0
+delta_epsilon    5
+seed 565434534
+min_force 1e-4
+anchoring_type 0 homeotropic
+Wo1 0 10.0
+anchoring_type 1 rp
+Wo1 1 1.0
+theta_0 1 90
+phi_0 1 0
+run

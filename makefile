@@ -31,6 +31,16 @@ $(patsubst %.o,%dbg.o,${OBJS}): build/%dbg.o: src/%.cpp | build
 	@${COMPILER}  -O0 -g $(filter-out -O% -fast, ${FLAGS}) -c $< -o $@
 $(patsubst %.o,%dbg.o,${OBJS}): ${HEADER}
 
+######### Consistency tests (make test). Each test prints its results; the full output goes to build/<test>.log
+TESTS    := $(patsubst tests/%.cpp,build/%,$(wildcard tests/*.cpp))
+LIB_OBJS := $(filter-out build/main.o,${OBJS})
+
+test: ${TESTS}
+	@status=0; for t in ${TESTS}; do ./$$t 2>&1 >$$t.log || status=1; done; \
+	if [ $$status -eq 0 ]; then echo "All tests passed."; else echo "SOME TESTS FAILED."; fi; exit $$status
+${TESTS}: build/%: tests/%.cpp ${LIB_OBJS} ${HEADER} | build
+	@${COMPILER} ${FLAGS} -Isrc $< ${LIB_OBJS} ${LIB} -o $@
+
 ########
 clean:
 	@rm -f marlics marlics_debug
