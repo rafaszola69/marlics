@@ -15,13 +15,14 @@ double Pi=3.14159265359;
 //Base class to latter geometry definition
 GEOMETRY::GEOMETRY(const struct Simulation_Parameters * lc) :
   bulk_energy(lc),
-  bulk_force(lc),
   Nx(lc->Nx),
   Ny(lc->Ny),
   Nz(lc->Nz),
   dx_1(1/lc->dx),
   dy_1(1/lc->dy),
-  dz_1(1/lc->dz)
+  dz_1(1/lc->dz),
+  dV(lc->dx*lc->dy*lc->dz),
+  dA(lc->dx*lc->dy)
 {
 
   std::cout << "Nx=" << Nx << " \n";
@@ -30,6 +31,31 @@ GEOMETRY::GEOMETRY(const struct Simulation_Parameters * lc) :
 
 
 };
+
+//Bulk energy density at site s, averaged over the 8 octants of one-sided differences.
+//Its exact gradient is the compact stencil used by fill_ki (3-point second derivatives and
+//4-corner mixed derivatives), so the time integrators decrease it, unlike a central-difference energy.
+double GEOMETRY::bulk_energy_octant(const double * Qij, int s, int xm, int xp, int ym, int yp, int zm, int zp, const double v[3]) const
+{
+  const int nx[2]={xm,xp}, ny[2]={ym,yp}, nz[2]={zm,zp};
+  const double sg[2]={-1.,1.};
+  double QN[5], dQ[15], f=0;
+
+  for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*s+ll];
+  for(int a=0; a<2; a++)
+    for(int b=0; b<2; b++)
+      for(int c=0; c<2; c++)
+        {
+          for(int ll=0; ll<=4;ll++)
+            {
+              dQ[ll]   =sg[a]*(Qij[5*nx[a]+ll]-QN[ll])*dx_1;
+              dQ[5+ll] =sg[b]*(Qij[5*ny[b]+ll]-QN[ll])*dy_1;
+              dQ[10+ll]=sg[c]*(Qij[5*nz[c]+ll]-QN[ll])*dz_1;
+            }
+          f+=bulk_energy.energy_calculation(QN,dQ,v);
+        }
+  return 0.125*f;
+}
 
 
   

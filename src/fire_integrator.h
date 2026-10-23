@@ -2,24 +2,27 @@
 #define FIRE_
 
 #include "integrator.h"
-#include <stdio.h>           
+#include <stdio.h>
 #include <stdlib.h>
 
+//FIRE 2.0 minimizer (Guénolé et al., Comput. Mater. Sci. 175, 109584 (2020)).
 class FIRE : public Integrator
 {
 
  private:
 
+  double *force, *vQij, *energy;
+  double min_force;
+
+  //Time step and velocity mixing control. They persist between calls of evolve,
+  //so printing a snapshot does not restart the minimization.
+  double dtmin, dtMax, scaleP, scaleM;
+  double alpha, alphainit, alphaMin, scaleAlpha;
+  int Np, Nmin, steps;
+
  public:
 
-  
-
-  double *force, *vQij, v2, f2, *Qijt, *energy, min_force;
-  double dtmin, potence, alphainit,scale, alphaMin, dt_init;
-  double scaleAlpha, scaleP, dtMax, scaleM, alpha;
-  int Np, Nmin, proceed;
-  
-  virtual bool evolve( double *, double *, double);    
+  virtual bool evolve( double *, double *, double);
   virtual ~FIRE(void) {};
   FIRE( GEOMETRY  * , const struct Simulation_Parameters *, double alpha_init=0.3, double alpha_min=0.1 );
 

@@ -3,8 +3,6 @@
 #define geometry_
 #include "energy.h"
 #include "energy_ldg.h"
-#include "force.h"
-#include "force_ldg.h"
 
 #include <vector>
 #include <string>
@@ -26,7 +24,6 @@ class GEOMETRY
   void read_check(int , int );
   
   virtual void fill_ki(double * k_i, const  double * Qij) const = 0;
-  virtual void compute_forces(double * k_i, const  double * Qij) const = 0;
   virtual void Energy_calc(double * fij, const  double * Qij) const = 0;
   virtual int backwardPTP(double *, const double * ) const =0 ;
 
@@ -43,10 +40,13 @@ class GEOMETRY
   std::string boundary_needed_to_be_defined;
 
   const landau_de_gennes bulk_energy;
-  
-  const force_ldg bulk_force;
-  
-  virtual int * fill_point_type( void ) const = 0 ;  
+
+  //Energy_calc returns energies (10^-21 J): bulk densities times dV, anchoring densities times dA.
+  const double dV;
+  double dA;  //surface area represented by one surface site; geometries with curved surfaces override it
+  double bulk_energy_octant(const double * Qij, int s, int xm, int xp, int ym, int yp, int zm, int zp, const double v[3]) const;
+
+  virtual int * fill_point_type( void ) const = 0 ;
   GEOMETRY * geometry_pointer;
   GEOMETRY(const struct Simulation_Parameters * );
 };

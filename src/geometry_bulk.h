@@ -10,7 +10,6 @@ class Geometry_Bulk : public GEOMETRY
 
 
   virtual void fill_ki(double *, const double * ) const ;
-  virtual void compute_forces(double *, const double * ) const ;
   virtual void Energy_calc(double * k_i, const double * Qij) const ;
   virtual int backwardPTP(double *, const double * ) const ;
     

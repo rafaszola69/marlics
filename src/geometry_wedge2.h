@@ -14,7 +14,6 @@ class Geometry_Wedge2 : public GEOMETRY
   Geometry_Wedge2(const struct Simulation_Parameters *);
   ~Geometry_Wedge2(void) {};
   virtual void Energy_calc(double * k_i, const double * Qij) const ;
-  virtual void compute_forces(double *, const double * ) const ;
   virtual int backwardPTP(double *, const double * ) const  ;
 
 

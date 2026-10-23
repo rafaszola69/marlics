@@ -33,11 +33,7 @@ src/ -> folder containing MarLiCs the source code;
 
 	src/integrator_%%%.(cpp/h) -> the class which define the %%% integrator;
 
-	src/fire_integrator.(cpp/h) -> a class containing the FIRE method;
-
-	src/force.(cpp/h) -> a superclass used to define the force to be used along with the FIRE method;
-
-	src/force_ldg.(cpp/h) -> the class with the force defined after the LdG energy;
+	src/fire_integrator.(cpp/h) -> a class containing the FIRE 2.0 minimizer. It uses the same functional derivative (and boundary conditions) as the time integrators, so it converges to their equilibrium states. "FIRE_el" is accepted as an alias with different velocity-mixing parameters;
 
 auxiliar/ -> some auxiliar files to aid the user;
 
