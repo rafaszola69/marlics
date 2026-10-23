@@ -3,3 +3,4 @@ marlics
 marlics_debug
 *.o
 *.csv
+figs/

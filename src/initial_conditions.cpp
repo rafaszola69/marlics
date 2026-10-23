@@ -621,9 +621,18 @@ void RSS_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEO
 
 void homeotropic_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry )
 {
-  //Initiatiate a homogeneously twisted cholesteric along the z sxis
+  //Bipolar cholesteric droplet with homeotropic anchoring, Krakhalev et al., Sci. Rep. 7, 14582 (2017).
+  //The cholesteric layers (isoclinal surfaces) are the spheres centred on the bipolar axis z that are
+  //orthogonal to the droplet, i.e. the surfaces of constant bispherical coordinate tau with foci at the
+  //poles (0,0,+-a). A layer meets the droplet surface at the polar angle theta_b=2*atan(exp(-tau)), and
+  //the director turns by psi=N*theta_b: N pi-turns from pole to pole, isoclinal lines equally spaced on
+  //the surface and denser at the centre (Fig. 1e). The director lies in the layer,
+  //n=cos(psi) e1+sin(psi) e2, with e1 the projection of x on the layer and e2=h x e1 (h: helix axis).
+  //The surface points where n becomes tangent then follow the double helix of Eq. (2).
+  //N=2d/p0_i with d=(Nz-1)*dz the droplet diameter; p0_i is separate from p0 because the pitch inside the droplet differs
+  //from the free one (N=N0-b/d, Eq. (1)).
   int i,j,k;
-  double n[3];  
+  double n[3];
 
   const double S_eq=sim_param->S_eq;
   const int Nx=geometry->Nx;
@@ -631,46 +640,64 @@ void homeotropic_asatz( struct Simulation_Parameters * sim_param,double * Qij, c
   const int Nz=geometry->Nz;
   const int * point_type=geometry->point_type;
 
-  const int m_i=1;
-  const double p0_i=sim_param->p0_i/sim_param->dz;
-  
-  std::cout<<"Initiating Zummer Ansatz(r,t,f):\n\n";
-    
+  std::cout<<"Initiating the bipolar homeotropic cholesteric droplet ansatz:\n\n";
+
     switch(sim_param->ic_flag[5])
     {
     case parameter_status::set:
-    
-      std::cout << "p0_i=" << p0_i << "\n";
       break;
 
     case parameter_status::unset:
 
-      std::cerr<<"Parameter \"m_i\" not set.\nThe initial condition named \"zummer1\" needs the paramters m_i and \"p0_i\" set for use.\n"<<
-      "Please set them in your in your input file.\n \nAborting the program.\n";
+      std::cerr<<"Parameter \"p0_i\" not set.\nThe initial condition \"homeotropic_ansatz\" needs \"p0_i\", which sets the number of pi-turns N=2*(Nz-1)*dz/p0_i.\n"<<
+      "Please set it in your input file.\n \nAborting the program.\n";
       exit(1);
       break;
     }
-  double Nc=2*Nz/(p0_i);
-      std::cout << "p0_i=" << Nc << "\n";
-  double Phi;
-      
+  const double N=2*(Nz-1)*sim_param->dz/sim_param->p0_i;
+  const double handedness=(sim_param->q0<0) ? -1.0 : 1.0;
+  const double a=0.5*(Nz-1);
+  std::cout << "p0_i=" << sim_param->p0_i << ", N=" << N << " pi-turns along the bipolar axis\n";
+
   for(i= 0; i< Nx; i++)
     {
       for(j= 0; j< Ny; j++)
-        {      
+        {
           for(k= 0; k< Nz; k++)
             {
-             
+
               if(point_type[(k*Ny+j)*Nx+i] !=0 )
                 {
-                  
-                  Phi=atan2((j-Ny/2),(i-Nx/2));
-                  n[0]=((m_i-1)?-1: 1)*sin(Phi)*sin(Nc*Phi);
-                  n[1]=((m_i-1)? 1:-1)*sin(Phi)*cos(Nc*Phi);
-                  n[2]=cos(Phi);
-                  if(!isnormal(n[0])&&n[0]!=0){n[0]=0.1;}
-                  if(!isnormal(n[1])&&n[1]!=0){n[1]=0.1;}
-                  if(!isnormal(n[2])&&n[2]!=0){n[2]=0.1;}
+                  const double x=i-0.5*(Nx-1);
+                  const double y=j-0.5*(Ny-1);
+                  const double z=k-0.5*(Nz-1);
+                  const double Dp=x*x+y*y+(z+a)*(z+a);
+                  const double Dm=x*x+y*y+(z-a)*(z-a);
+                  double theta_b, h[3]={0,0,-1};
+
+                  //At the poles (the foci) tau is singular: theta_b is 0 or pi and h is along -z.
+                  //(Tested explicitly: -Ofast assumes there are no inf/nan.)
+                  if(Dm<1e-12)      theta_b=0;
+                  else if(Dp<1e-12) theta_b=M_PI;
+                  else
+                    {
+                      theta_b=2*atan(sqrt(Dm/Dp));
+                      //Helix axis h along grad(theta_b)=-grad(tau).
+                      h[0]=-x*(1/Dp-1/Dm);
+                      h[1]=-y*(1/Dp-1/Dm);
+                      h[2]=-((z+a)/Dp-(z-a)/Dm);
+                      const double hn=sqrt(h[0]*h[0]+h[1]*h[1]+h[2]*h[2]);
+                      for(int l=0; l<3; l++) h[l]/=hn;
+                    }
+
+                  double e1[3]={1-h[0]*h[0], -h[0]*h[1], -h[0]*h[2]};
+                  const double e1n=sqrt(e1[0]*e1[0]+e1[1]*e1[1]+e1[2]*e1[2]);
+                  for(int l=0; l<3; l++) e1[l]/=e1n;
+                  const double e2[3]={h[1]*e1[2]-h[2]*e1[1], h[2]*e1[0]-h[0]*e1[2], h[0]*e1[1]-h[1]*e1[0]};
+
+                  const double psi=handedness*N*theta_b;
+                  for(int l=0; l<3; l++) n[l]=cos(psi)*e1[l]+sin(psi)*e2[l];
+
                   Qij[5*(Nx*(Ny*k+j)+i)+0]=(0.5*S_eq*(3.0*n[0]*n[0]-1.0));
                   Qij[5*(Nx*(Ny*k+j)+i)+1]=(0.5*S_eq*(3.0*n[0]*n[1]));
                   Qij[5*(Nx*(Ny*k+j)+i)+2]=(0.5*S_eq*(3.0*n[0]*n[2]));
