@@ -13,9 +13,9 @@
 #include "geometry_wedge2.h"
 #include "boundary.h"
 #include "integrator.h"
+#include "exec_cpu.h"
 #include "fire_integrator.h"
 #include "integrator_dp5.h" 
-#include "integrator_dp5_v2.h" 
 #include "integrator_dp5_noise.h" 
 #include "integrator_rk2.h" 
 #include "integrator_euler.h" 
@@ -444,7 +444,7 @@ void driver::setup_Simulation(void)
            || strcasecmp(sim_param.integrator_type,"Rk54m") == 0 || strcasecmp(sim_param.integrator_type,"Rk5m") == 0 )
         {
   
-          LcS_Integrator= new DP5(LcS_Geometry, & sim_param );
+          LcS_Integrator= new DP5<CpuExec>(LcS_Geometry, & sim_param, dormand_prince_m );
           std::cout << "Loading the Dormand-Prince5(4)m integrator.\n\n";
   
         }
@@ -452,14 +452,14 @@ void driver::setup_Simulation(void)
            || strcasecmp(sim_param.integrator_type,"Rk54s") == 0 || strcasecmp(sim_param.integrator_type,"Rk5s") == 0 )
         {
   
-          LcS_Integrator= new DP5_2(LcS_Geometry, & sim_param );
+          LcS_Integrator= new DP5<CpuExec>(LcS_Geometry, & sim_param, dormand_prince_s );
           std::cout << "Loading the Dormand-Prince5(4)s integrator.\n\n";
   
         }
       else if ( strcasecmp(sim_param.integrator_type,"RK2") == 0 || strcasecmp(sim_param.integrator_type,"Runge-Kutta2") == 0)
         {
   
-          LcS_Integrator= new RK2(LcS_Geometry, & sim_param );
+          LcS_Integrator= new RK2<CpuExec>(LcS_Geometry, & sim_param );
           std::cout << "Loading the Runge-Kutta2 integrator.\n\n";
   
         }
@@ -473,14 +473,14 @@ void driver::setup_Simulation(void)
       else if ( strcasecmp(sim_param.integrator_type,"RK1") == 0 || strcasecmp(sim_param.integrator_type,"Euler") == 0)
         {
   
-          LcS_Integrator= new Euler(LcS_Geometry, & sim_param );
+          LcS_Integrator= new Euler<CpuExec>(LcS_Geometry, & sim_param );
           std::cout << "Loading the Euler integrator.\n\n";
   
         }
       else if ( strcasecmp(sim_param.integrator_type,"FIRE") == 0 )
         {
   
-          LcS_Integrator= new FIRE(LcS_Geometry, & sim_param );
+          LcS_Integrator= new FIRE<CpuExec>(LcS_Geometry, & sim_param );
           std::cout << "Loading the FIRE integrator.\n\n";
   
         }
@@ -488,7 +488,7 @@ void driver::setup_Simulation(void)
         {
   
           //Kept for old input files: same as FIRE, with the alpha values the former FIRE_el used.
-          LcS_Integrator= new FIRE(LcS_Geometry, & sim_param, 0.4, 0.3 );
+          LcS_Integrator= new FIRE<CpuExec>(LcS_Geometry, & sim_param, 0.4, 0.3 );
           std::cout << "Loading the FIRE integrator (FIRE_el alpha parameters).\n\n";
   
         }

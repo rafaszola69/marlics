@@ -6,6 +6,7 @@
 #include "integrator.h"
 #include "integrator_dp5.h"
 #include "fire_integrator.h"
+#include "exec_cpu.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -30,7 +31,7 @@ static bool dp5_monotone(const char* input)
   d.setup_LC();
   d.setup_Simulation();
   GEOMETRY* g=d.LcS_Geometry;
-  Integrator* dp5=new DP5(g, &d.sim_param);
+  Integrator* dp5=new DP5<CpuExec>(g, &d.sim_param);
   std::vector<double> e(10*g->Nx*g->Ny*g->Nz);
 
   double t=0, E=total_energy(g,e,d.Qij), E0=E;
@@ -57,7 +58,7 @@ static bool fire_converges(const char* input)
   d.setup_LC();
   d.setup_Simulation();
   GEOMETRY* g=d.LcS_Geometry;
-  Integrator* fire=new FIRE(g, &d.sim_param);
+  Integrator* fire=new FIRE<CpuExec>(g, &d.sim_param);
   const int N=5*g->Nx*g->Ny*g->Nz;
 
   double t=0;

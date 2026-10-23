@@ -2,24 +2,24 @@
 #define EULER_
 
 #include "integrator.h"
-#include <stdio.h>           
+#include <stdio.h>
 #include <stdlib.h>
 
+//Euler integrator with a fixed step. Exec runs the element-wise work: CpuExec (OpenMP) or the
+//CUDA executor.
+template<class Exec>
 class Euler : public Integrator
 {
-
  private:
 
+  Exec exec;
+  double *k_1;
+
  public:
- 
-  double *k_1, *energy;
-  
-  virtual bool evolve( double *, double *, double);    
-  virtual ~Euler(void) {};
+
+  virtual bool evolve( double *, double *, double);
+  virtual ~Euler(void);
   Euler( GEOMETRY  * , const struct Simulation_Parameters * );
-
-
 };
-
 
 #endif
