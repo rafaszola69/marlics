@@ -20,17 +20,16 @@ class Integrator
   
   virtual bool evolve(double *,  double *, double) = 0;
   
+  //Work array for the Runge-Kutta stages; allocated only by the integrators that use it.
   double *Qtij;
-  
+
  Integrator( GEOMETRY  * lc_pointer ) :  sample_geometry(lc_pointer),
 
     Nx(lc_pointer->Nx),
     Ny(lc_pointer->Ny),
-    Nz(lc_pointer->Nz)
+    Nz(lc_pointer->Nz),
+    Qtij(NULL)
     {
-
-      if((Qtij= (double *)calloc(5*sample_geometry->Nx*sample_geometry->Ny*sample_geometry->Nz, sizeof(double)))==NULL){ERROr};
-
     };
     
 };

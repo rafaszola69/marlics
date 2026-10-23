@@ -18,7 +18,7 @@ FIRE::FIRE( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_para
   dt=sim_param->dt;
   if((force= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   if((vQij = (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
-  if((energy = (double *)calloc(2*5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
+  if((energy = (double *)calloc(2*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
 
   dtmin = dt*0.01;
   dtMax = dt*100;
@@ -142,7 +142,7 @@ bool FIRE::evolve( double * Qij, double *time, double tf )
     Total_Energy=0;
     sample_geometry->Energy_calc(energy,Qij);
     #pragma omp for schedule(static) reduction(+: Total_Energy)
-      for( ll=0; ll<2*5*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
+      for( ll=0; ll<2*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
 
     #pragma omp single
       std::cout << "time=" << *time << ", Energy=" << Total_Energy << std::endl;

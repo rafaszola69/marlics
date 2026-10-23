@@ -23,7 +23,7 @@ Euler::Euler( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_pa
   dt=sim_param->dt;
   //allocate the ith-stage array:
   if((k_1= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
-  if((energy = (double *)calloc(2*5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
+  if((energy = (double *)calloc(2*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   
   std::cout << "dt=" << dt << " \n";
 };
@@ -62,7 +62,7 @@ bool Euler::evolve( double * Qij, double *time, double tf )
         Total_Energy=0;
         sample_geometry->Energy_calc(energy,Qij);
         #pragma omp for simd schedule(simd:dynamic,new_chunk_size) reduction(+: Total_Energy)
-            for( ll=0; ll<2*5*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
+            for( ll=0; ll<2*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
             
         #pragma omp barrier
         #pragma omp single 

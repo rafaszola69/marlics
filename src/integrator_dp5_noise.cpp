@@ -28,6 +28,7 @@ NOISE_DP5::NOISE_DP5( GEOMETRY  * lc_pointer, const struct Simulation_Parameters
 {
   dt=sim_param->dt;
   //allocate the ith-stage array:
+  if((Qtij= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   if((k_1= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   if((k_2= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   if((k_3= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
@@ -36,7 +37,7 @@ NOISE_DP5::NOISE_DP5( GEOMETRY  * lc_pointer, const struct Simulation_Parameters
   if((k_6= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   if((k_7= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   if((noise= (double *)calloc(5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
-  if((energy = (double *)calloc(2*5*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
+  if((energy = (double *)calloc(2*Nx*Ny*Nz, sizeof(double)))==NULL){ERROr}
   
   if (sim_param->ic_flag[4]==parameter_status::unset) 
     //~ gsl_rng_default_seed=time(NULL);
@@ -228,7 +229,7 @@ bool NOISE_DP5::evolve( double * Qij, double *time, double tf )
         Total_Energy=0;
         sample_geometry->Energy_calc(energy,Qij);
         #pragma omp for simd schedule(simd:dynamic,new_chunk_size) reduction(+: Total_Energy)
-            for( ll=0; ll<2*5*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
+            for( ll=0; ll<2*Nx*Ny*Nz;ll++) Total_Energy+=energy[ll];
             
         #pragma omp barrier
         #pragma omp single 
