@@ -24,7 +24,8 @@ class Geometry_Custom : public GEOMETRY
  public:
  
   virtual void fill_ki(double * k_i, const double * Qij) const ;
-  virtual void Energy_calc(double * k_i, const double * Qij) const ;
+  virtual int surface_site(int, int, int, double [3], double &) const ;
+  virtual bool is_periodic(int axis) const { return axis<3; }
   virtual void test_derivatives(const char integrator[]) const;
   virtual int backwardPTP(double *, const double * ) const ;
   

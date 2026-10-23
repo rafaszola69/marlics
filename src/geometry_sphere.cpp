@@ -216,84 +216,6 @@ void  Geometry_Sphere::fill_ki(double * k_i,
   
 }
 
-void  Geometry_Sphere::Energy_calc(double * k_i, const double * Qij)  const 
-{
-  #pragma omp for simd schedule(dynamic,1) collapse(2)  
-  for( int k= 0; k< Nz; k++)
-  {
-    for( int j= 0; j< Ny; j++)
-    {
-      for( int i= 0; i< Nx; i++)
-	    {
-        int ip1,jp1,kp1, im1, jm1, km1, ll;
-        double dQ[15];
-        double QN[5];
-        double v[3];
-        
-	      if(point_type[(k*Ny+j)*Nx+i] == 1)
-        {
-          //check_bulk_limits( i,  j,  k);                    
-          ip1= (i+1);
-          jp1= (j+1);
-          kp1= (k+1);
-          im1= (i-1);
-          jm1= (j-1);
-          km1= (k-1);
-          
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          
-          //Calcule first derivatives of Qij:
-          k_i[2*(Nx*(Ny*k+j)+i)]=dV*bulk_energy_octant(Qij,(k*Ny+j)*Nx+i,(k*Ny+j)*Nx+im1,(k*Ny+j)*Nx+ip1,(k*Ny+jm1)*Nx+i,(k*Ny+jp1)*Nx+i,(km1*Ny+j)*Nx+i,(kp1*Ny+j)*Nx+i,v);
-          k_i[2*(Nx*(Ny*k+j)+i)+1]=0.; 
-        }  
-	      else if( point_type[(k*Ny+j)*Nx+i] == 2 )
-        {
-          //check_surface_limits( i,  j,  k);
-          double delta_x,delta_y,delta_z;
-          double rr;
-          double v[3];
-          
-          delta_x=(i-HNx)*dx;
-          delta_y=(j-HNy)*dy;
-          delta_z=(k-HNz)*dz;
-          rr=sqrt( delta_x*delta_x+delta_y*delta_y+delta_z*delta_z);
-                            
-          v[0]=delta_x/rr;
-          v[1]=delta_y/rr;
-          v[2]=delta_z/rr;
-          //Boundary condtions:
-    
-          ip1= i>=Nx/2 ? i   : i+1 ;
-          jp1= j>=Ny/2 ? j   : j+1 ;
-          kp1= k>=Nz/2 ? k   : k+1 ;
-      
-          im1= i>=Nx/2 ? i-1 : i ;
-          jm1= j>=Ny/2 ? j-1 : j ;
-          km1= k>=Nz/2 ? k-1 : k ;
-    
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-    
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]=   (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-    
-          k_i[2*(Nx*(Ny*k+j)+i)+0]=dV*bulk_energy.energy_calculation(QN,dQ,v); 
-          k_i[2*(Nx*(Ny*k+j)+i)+1]=dA*bc_conditions[0]->energy_calculation(QN,dQ,v);
-//~           printf("%g %g %d %d %d\n",k_i[2*(Nx*(Ny*k+j)+i)+1],k_i[2*(Nx*(Ny*k+j)+i)],i,j,k);
-          //check_surface_limits(i,j,k);
-        }
-	      else
-        {
-    
-          k_i[2*(Nx*(Ny*k+j)+i)+0]=0.;
-          k_i[2*(Nx*(Ny*k+j)+i)+1]=0.;
-        }
-	    }
-    }
-  }
-}
-       
 int * Geometry_Sphere::fill_point_type( void )  const 
 {
   int i,j,k;
@@ -471,4 +393,18 @@ int  Geometry_Sphere::backwardPTP(double * k_i, const double * Qij)  const
   }
   printf("%d\n",maxSteps);fflush(stdout);
   return maxSteps;
+}
+
+int Geometry_Sphere::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  const double delta_x=(i-HNx)*dx;
+  const double delta_y=(j-HNy)*dy;
+  const double delta_z=(k-HNz)*dz;
+  const double rr=sqrt(delta_x*delta_x+delta_y*delta_y+delta_z*delta_z);
+
+  v[0]=delta_x/rr;
+  v[1]=delta_y/rr;
+  v[2]=delta_z/rr;
+  area=dA;
+  return 0;
 }

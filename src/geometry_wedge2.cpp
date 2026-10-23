@@ -170,99 +170,6 @@ void  Geometry_Wedge2::fill_ki(double * k_i,
 }
 
     
-void  Geometry_Wedge2::Energy_calc(double * k_i, const double * Qij)  const 
-{
-  int k=0;
-  #pragma omp for schedule(dynamic,1) collapse(2)
-  for( int j= 0; j< Ny; j++)
-  {
-    for( int i= 0; i< Nx; i++)
-    {
-      double dQ[15];
-      double QN[5];
-      double v[3];
-      
-      int ip1= (i+1)%Nx;
-      int jp1= (j+1)%Ny;
-      int kp1= (k+1);
-      int im1= (i+Nx-1)%Nx;
-      int jm1= (j+Ny-1)%Ny;
-      int km1= k;
-      v[0]=0.0;
-      v[1]=0.0;
-      v[2]=-1.0;
-
-      for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-      
-      //Calcule first derivatives of Qij:
-      for(int ll=0; ll<=4;ll++) dQ[ll]=0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-      for(int ll=0; ll<=4;ll++) dQ[5+ll]=0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-      for(int ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-        
-      k_i[5*(Nx*(Ny*k+j)+i)+0]=dA*bc_conditions[0]->energy_calculation(QN,dQ,v);
-    }
-  }
-	  
-  #pragma omp for schedule(dynamic,1) collapse(2) private(k)
-  for( k= 1; k< Nz-1; k++)
-  {
-    for( int j= 0; j< Ny; j++)
-    {
-      for( int i= 0; i< Nx; i++)
-	    {	
-        double dQ[15];
-        double QN[5];
-        double v[3];
-
-	      //check_bulk_limits( i,  j,  k);  
-
-	      int ip1= (i+1)%Nx;
-	      int jp1= (j+1)%Ny;
-	      int kp1= (k+1);
-	      int im1= (i+Nx-1)%Nx;
-	      int jm1= (j+Ny-1)%Ny;
-	      int km1= (k-1);
-
-	      for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-        
-        //Calcule first derivatives of Qij:
-	      k_i[5*(Nx*(Ny*k+j)+i)]=dV*bulk_energy_octant(Qij,(k*Ny+j)*Nx+i,(k*Ny+j)*Nx+im1,(k*Ny+j)*Nx+ip1,(k*Ny+jm1)*Nx+i,(k*Ny+jp1)*Nx+i,(km1*Ny+j)*Nx+i,(kp1*Ny+j)*Nx+i,v); 
-	    }
-    }
-  }
-  k=Nz-1;
-  #pragma omp for schedule(dynamic,1) collapse(2)  
-  for( int j= 0; j< Ny; j++)
-  {
-    for( int i= 0; i< Nx; i++)
-    {
-      double dQ[15];
-      double QN[5];
-      double v[3];
-  
-      int ip1= (i+1)%Nx;
-      int jp1= (j+1)%Ny;
-//~       int kp1= k;
-      int im1= (i+Nx-1)%Nx;
-      int jm1= (j+Ny-1)%Ny;
-      int km1= (k-1);
-      v[0]=0.0;
-      v[1]=0.0;
-      v[2]=1.0;
-      
-      for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-  
-      //Calcule first derivatives of Qij:
-      for(int ll=0; ll<=4;ll++) dQ[ll]=0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-      for(int ll=0; ll<=4;ll++) dQ[5+ll]=0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-      for(int ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((k*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-        
-      k_i[5*(Nx*(Ny*k+j)+i)]=dA*bc_conditions[1]->energy_calculation(QN,dQ,v);
-    }
-  }
-  //check_surface_limits(i,j,k);
-}
- 
 int * Geometry_Wedge2::fill_point_type( void )  const 
 {
   int i,j,k;
@@ -290,3 +197,22 @@ int * Geometry_Wedge2::fill_point_type( void )  const
 
 
 int Geometry_Wedge2::backwardPTP(double *, const double * ) const {}
+
+int Geometry_Wedge2::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  //Same normals as fill_ki: bottom (0,0,-1); top (0,-sin(theta),cos(theta)), with area dx*dy/cos(theta).
+  const double theta=atan2(Nz-Nz2,Ny);
+
+  v[0]=0.0;
+  if(point_type[(k*Ny+j)*Nx+i]==2)
+    {
+      v[1]=0.0;
+      v[2]=-1.0;
+      area=dA;
+      return 0;
+    }
+  v[1]=-sin(theta);
+  v[2]=cos(theta);
+  area=dA/cos(theta);
+  return 1;
+}

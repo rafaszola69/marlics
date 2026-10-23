@@ -23,7 +23,7 @@ class Geometry_Sphere : public GEOMETRY
  public:
  
   virtual void fill_ki(double * k_i, const double * Qij) const ;
-  virtual void Energy_calc(double * k_i, const double * Qij) const ;
+  virtual int surface_site(int, int, int, double [3], double &) const ;
   virtual int backwardPTP(double *, const double * ) const ;
   
   Geometry_Sphere(const struct Simulation_Parameters * );

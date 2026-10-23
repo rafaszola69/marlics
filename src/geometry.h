@@ -24,7 +24,8 @@ class GEOMETRY
   void read_check(int , int );
   
   virtual void fill_ki(double * k_i, const  double * Qij) const = 0;
-  virtual void Energy_calc(double * fij, const  double * Qij) const = 0;
+  //Energy of each site (10^-21 J): k_i[2*s] = bulk part, k_i[2*s+1] = anchoring part. Shared by all geometries.
+  virtual void Energy_calc(double * k_i, const  double * Qij) const;
   virtual int backwardPTP(double *, const double * ) const =0 ;
 
   const int *point_type;
@@ -45,6 +46,15 @@ class GEOMETRY
   const double dV;
   double dA;  //surface area represented by one surface site; geometries with curved surfaces override it
   double bulk_energy_octant(const double * Qij, int s, int xm, int xp, int ym, int yp, int zm, int zp, const double v[3]) const;
+
+  //Neighbour of (i,j,k) along axis (0,1,2) in direction dir (+1/-1). Outside points and
+  //non-periodic domain edges return the site itself (zero one-sided difference).
+  int neighbor(int i, int j, int k, int axis, int dir) const;
+  virtual bool is_periodic(int axis) const { return false; }
+
+  //For a surface site (point_type>=2): returns the boundary condition index, and fills the
+  //outward normal used by fill_ki and the surface area the site represents.
+  virtual int surface_site(int i, int j, int k, double v[3], double & area) const;
 
   virtual int * fill_point_type( void ) const = 0 ;
   GEOMETRY * geometry_pointer;

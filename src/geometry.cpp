@@ -57,6 +57,57 @@ double GEOMETRY::bulk_energy_octant(const double * Qij, int s, int xm, int xp, i
   return 0.125*f;
 }
 
+int GEOMETRY::neighbor(int i, int j, int k, int axis, int dir) const
+{
+  int c[3]={i,j,k};
+  const int n[3]={Nx,Ny,Nz};
+  const int s=(k*Ny+j)*Nx+i;
+
+  c[axis]+=dir;
+  if(c[axis]<0 || c[axis]>=n[axis])
+    {
+      if(!is_periodic(axis)) return s;
+      c[axis]=(c[axis]+n[axis])%n[axis];
+    }
+  const int t=(c[2]*Ny+c[1])*Nx+c[0];
+  return point_type[t]==0 ? s : t;
+}
+
+int GEOMETRY::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  std::cout << "The " << geometry_name << " geometry does not define its surface sites.\nAborting the program.\n";
+  exit(1);
+}
+
+//Every liquid crystal site carries bulk energy over its volume dV; surface sites also carry
+//the anchoring energy over the area they represent. Bulk sites therefore see exactly the
+//energy whose gradient fill_ki uses, including the links to surface sites.
+void GEOMETRY::Energy_calc(double * k_i, const double * Qij) const
+{
+  #pragma omp for schedule(static)
+  for(int s=0; s<Nx*Ny*Nz; s++)
+    {
+      const int i=s%Nx, j=(s/Nx)%Ny, k=s/(Nx*Ny);
+      double v[3]={0.,0.,0.};
+      const double dQ[15]={0.};
+
+      k_i[2*s+0]=0.;
+      k_i[2*s+1]=0.;
+      if(point_type[s]==0) continue;
+
+      k_i[2*s+0]=dV*bulk_energy_octant(Qij,s,
+                                       neighbor(i,j,k,0,-1),neighbor(i,j,k,0,1),
+                                       neighbor(i,j,k,1,-1),neighbor(i,j,k,1,1),
+                                       neighbor(i,j,k,2,-1),neighbor(i,j,k,2,1),v);
+      if(point_type[s]>=2)
+        {
+          double area;
+          const int bc=surface_site(i,j,k,v,area);
+          k_i[2*s+1]=area*bc_conditions[bc]->energy_calculation(&Qij[5*s],dQ,v);
+        }
+    }
+}
+
 
   
 void GEOMETRY::boundary_init(struct Simulation_Parameters * sim_param)

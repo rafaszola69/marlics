@@ -27,7 +27,7 @@ class Geometry_Hemisphere : public GEOMETRY
 
   
   virtual void fill_ki(double * k_i, const double * Qij) const ;
-  virtual void Energy_calc(double * k_i, const double * Qij) const ;
+  virtual int surface_site(int, int, int, double [3], double &) const ;
   virtual int backwardPTP(double *, const double * ) const ;
     
 

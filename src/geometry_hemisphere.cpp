@@ -64,6 +64,12 @@ Geometry_Hemisphere::Geometry_Hemisphere(const struct Simulation_Parameters * si
              <<"R_ex=" << R_ex <<std::endl;
 
    point_type=fill_point_type( );
+
+   //Each curved-surface site represents an equal share of the cap area.
+   int n_surface=0;
+   for(int s=0; s<Nx*Ny*Nz; s++) if(point_type[s]==3) n_surface++;
+   dA=2*M_PI*pow(0.5*(R_in+R_ex),2)/n_surface;
+   std::cout << "Surface area per curved-surface site dA=" << dA << std::endl;
 }
 
 Geometry_Hemisphere::~Geometry_Hemisphere()
@@ -212,110 +218,6 @@ void  Geometry_Hemisphere::fill_ki(double * k_i,
   
 }
 
-void  Geometry_Hemisphere::Energy_calc(double * k_i,
-			       const double * Qij)  const 
-{
-
-  #pragma omp for simd schedule(dynamic,1) collapse(2)  
-  for( int k= 0; k< Nz; k++)
-  {
-    for( int j= 0; j< Ny; j++)
-    {
-      for( int i= 0; i< Nx; i++)
-	    {	
-
-        int ip1,jp1,kp1, im1, jm1, km1, ll;
-        double dQ[15];
-        double QN[5];
-        double v[3];
-      
-	      if(point_type[(k*Ny+j)*Nx+i] == 1)
-        {
-          //check_bulk_limits( i,  j,  k);                    
-          ip1= (i+1);
-          jp1= (j+1);
-          kp1= (k+1);
-          im1= (i-1);
-          jm1= (j-1);
-          km1= (k-1);
-
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-    
-          //Calcule first derivatives of Qij:
-          k_i[5*(Nx*(Ny*k+j)+i)]=dV*bulk_energy_octant(Qij,(k*Ny+j)*Nx+i,(k*Ny+j)*Nx+im1,(k*Ny+j)*Nx+ip1,(k*Ny+jm1)*Nx+i,(k*Ny+jp1)*Nx+i,(km1*Ny+j)*Nx+i,(kp1*Ny+j)*Nx+i,v); 
-        }  
-	      else if( point_type[(k*Ny+j)*Nx+i] == 2 )
-        {
-  
-          double dQ[15];
-          double QN[5];
-          double v[3];
-          
-          int ip1= (i+1)%Nx;
-          int jp1= (j+1)%Ny;
-          int kp1= (k+1);
-          int im1= (i+Nx-1)%Nx;
-          int jm1= (j+Ny-1)%Ny;
-          int km1= k;
-          v[0]=0.0;
-          v[1]=0.0;
-          v[2]=-1.0;
-
-          for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          //Calcule first derivatives of Qij:
-          for(int ll=0; ll<=4;ll++) dQ[ll]=0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(int ll=0; ll<=4;ll++) dQ[5+ll]=0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(int ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-            
-          k_i[5*(Nx*(Ny*k+j)+i)]=dA*bc_conditions[0]->energy_calculation(QN,dQ,v);
-        //check_surface_limits(i,j,k);
-        } 
-        else if( point_type[(k*Ny+j)*Nx+i] == 3 )
-        {
-  
-          //check_surface_limits( i,  j,  k);
-          double delta_x,delta_y,delta_z;
-          double rr;
-          double v[3];
-          
-          delta_x=(i-HNx)*dx;
-          delta_y=(j-HNy)*dy;
-          delta_z=(k-HNz)*dz;
-          rr=sqrt( delta_x*delta_x+delta_y*delta_y+delta_z*delta_z);
-                            
-          v[0]=delta_x/rr;
-          v[1]=delta_y/rr;
-          v[2]=delta_z/rr;
-          //Boundary condtions:
-    
-          ip1= i>=HNx ? i   : i+1 ;
-          jp1= j>=HNy ? j   : j+1 ;
-          kp1= k>=HNz ? k   : k+1 ;
-      
-          im1= i>=HNx ? i-1 : i ;
-          jm1= j>=HNy ? j-1 : j ;
-          km1= k>=HNz ? k-1 : k ;
-    
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]=   (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-    
-          k_i[5*(Nx*(Ny*k+j)+i)]=dA*bc_conditions[1]->energy_calculation(QN,dQ,v);
-          //check_surface_limits(i,j,k);
-        }
-          else
-        {
-          k_i[5*(Nx*(Ny*k+j)+i)]=0.; 
-        }
-
-      }
-    }
-  }
-  
-}
-   
 int * Geometry_Hemisphere::fill_point_type( void )  const 
 {
   int i,j,k;
@@ -368,3 +270,25 @@ int Geometry_Hemisphere::backwardPTP(double *, const double * ) const {}
 
   
 
+int Geometry_Hemisphere::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  //Flat bottom (point type 2) and curved cap (point type 3), as in fill_ki.
+  if(point_type[(k*Ny+j)*Nx+i]==2)
+    {
+      v[0]=0.0;
+      v[1]=0.0;
+      v[2]=-1.0;
+      area=dx*dy;
+      return 0;
+    }
+  const double delta_x=(i-HNx)*dx;
+  const double delta_y=(j-HNy)*dy;
+  const double delta_z=(k-HNz)*dz;
+  const double rr=sqrt(delta_x*delta_x+delta_y*delta_y+delta_z*delta_z);
+
+  v[0]=delta_x/rr;
+  v[1]=delta_y/rr;
+  v[2]=delta_z/rr;
+  area=dA;
+  return 1;
+}

@@ -13,7 +13,8 @@ class slab : public GEOMETRY
     
   slab(const struct Simulation_Parameters *);
   ~slab(void) {};
-  virtual void Energy_calc(double * k_i, const double * Qij) const ;
+  virtual int surface_site(int, int, int, double [3], double &) const ;
+  virtual bool is_periodic(int axis) const { return axis<2; }
   virtual int backwardPTP(double *, const double * ) const  ;
 
 

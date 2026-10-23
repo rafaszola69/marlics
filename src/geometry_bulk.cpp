@@ -89,41 +89,6 @@ void  Geometry_Bulk::fill_ki(double * k_i,const double * Qij) const
     }
 }
 
-void  Geometry_Bulk::Energy_calc(double * k_i,const double * Qij) const
-{
-#pragma omp for schedule(dynamic,1) collapse(2)
-  for( int k= 0; k< Nz; k++)
-  {
-    for( int j= 0; j< Ny; j++)
-    {
-      for( int i= 0; i< Nx; i++)
-	    {	
-	      int ip1= (i+1)%Nx;
-        int im1= (i+Nx-1)%Nx;
-
-        int jp1= (j+1)%Ny;
-        int jm1= (j+Ny-1)%Ny;
-
-        int kp1= (k+1)%Nz;
-        int km1= (k+Nz-1)%Nz;
-
-        double dQ[15];
-        double QN[5];
-        double v[3];
-
-        v[0]=0;
-        v[1]=0;
-        v[2]=0;
-
-	      for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-
-	      //Calcule first derivatives of Qij:
-	      k_i[5*(Nx*(Ny*k+j)+i)]=dV*bulk_energy_octant(Qij,(k*Ny+j)*Nx+i,(k*Ny+j)*Nx+im1,(k*Ny+j)*Nx+ip1,(k*Ny+jm1)*Nx+i,(k*Ny+jp1)*Nx+i,(km1*Ny+j)*Nx+i,(kp1*Ny+j)*Nx+i,v); 
-	    }
-    }
-  }
-}
-      
 int * Geometry_Bulk::fill_point_type( void )  const 
 {
   int i,j,k;

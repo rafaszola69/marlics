@@ -239,72 +239,6 @@ void  Geometry_Custom::test_derivatives( const char integrator_type[])  const
   }
 }
 
-void  Geometry_Custom::Energy_calc(double * k_i, const double * Qij)  const 
-{
-  #pragma omp for simd schedule(dynamic,1) collapse(2)  
-  for( int k= 0; k< Nz; k++)
-  {
-    for( int j= 0; j< Ny; j++)
-    {
-      for( int i= 0; i< Nx; i++)
-	    {
-        int ip1,jp1,kp1, im1, jm1, km1, ll;
-        double dQ[15];
-        double QN[5];
-        
-	      if(point_type[(k*Ny+j)*Nx+i] == 1)
-        {
-          //check_bulk_limits( i,  j,  k);                    
-          ip1= (i+1);
-          jp1= (j+1);
-          kp1= (k+1);
-          im1= (i-1);
-          jm1= (j-1);
-          km1= (k-1);
-          
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          
-          //Calcule first derivatives of Qij:
-          k_i[2*(Nx*(Ny*k+j)+i)]=dV*bulk_energy_octant(Qij,(k*Ny+j)*Nx+i,(k*Ny+j)*Nx+im1,(k*Ny+j)*Nx+ip1,(k*Ny+jm1)*Nx+i,(k*Ny+jp1)*Nx+i,(km1*Ny+j)*Nx+i,(kp1*Ny+j)*Nx+i,v[(k*Ny+j)*Nx+i]);
-          k_i[2*(Nx*(Ny*k+j)+i)+1]=0.; 
-        }  
-	      else if( point_type[(k*Ny+j)*Nx+i] == 0 )
-        {
-          k_i[2*(Nx*(Ny*k+j)+i)+0]=0.;
-          k_i[2*(Nx*(Ny*k+j)+i)+1]=0.;
-        }
-        else 
-        {
-          //check_surface_limits( i,  j,  k);
-          int bound=point_type[(k*Ny+j)*Nx+i]-2;
-          
-          //Boundary condtions:
-          
-          ip1= (v[(k*Ny+j)*Nx+i][0] >=0) ? i : (i+1)%Nx ;
-          jp1= (v[(k*Ny+j)*Nx+i][1] >=0) ? j : (j+1)%Ny ;
-          kp1= (v[(k*Ny+j)*Nx+i][2] >=0) ? k : (k+1)%Nz ;
-          
-          im1= (v[(k*Ny+j)*Nx+i][0] >=0) ? (i-1+Nx)%Nx : i ;
-          jm1= (v[(k*Ny+j)*Nx+i][1] >=0) ? (j-1+Ny)%Ny : j ;
-          km1= (v[(k*Ny+j)*Nx+i][2] >=0) ? (k-1+Nz)%Nz : k ;
-    
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-    
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]=   (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-    
-          k_i[2*(Nx*(Ny*k+j)+i)+0]=dV*bulk_energy.energy_calculation(QN,dQ,v[(k*Ny+j)*Nx+i]);
-          k_i[2*(Nx*(Ny*k+j)+i)+1]=dA*bc_conditions[bound]->energy_calculation(QN,dQ,v[(k*Ny+j)*Nx+i]);
-//~           printf("%g %g %d %d %d\n",k_i[2*(Nx*(Ny*k+j)+i)+1],k_i[2*(Nx*(Ny*k+j)+i)],i,j,k);
-          //check_surface_limits(i,j,k);
-        }
-	    }
-    }
-  }
-}
-       
 int * Geometry_Custom::fill_pt_and_normals( double **v , const char bound_file_name[], int &number_of_boundaries)  const 
 {
   int i, nn;
@@ -367,3 +301,14 @@ Please, use 0 as empty space, 1 as bulk and 2+ as surface point type.\n",line_nu
 int * Geometry_Custom::fill_point_type( void )  const  { return 0;}
 
 int Geometry_Custom::backwardPTP(double *, const double * ) const {}
+
+int Geometry_Custom::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  const int s=(k*Ny+j)*Nx+i;
+
+  v[0]=this->v[s][0];
+  v[1]=this->v[s][1];
+  v[2]=this->v[s][2];
+  area=dA;
+  return point_type[s]-2;
+}

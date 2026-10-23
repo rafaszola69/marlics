@@ -10,7 +10,7 @@ class Geometry_Bulk : public GEOMETRY
 
 
   virtual void fill_ki(double *, const double * ) const ;
-  virtual void Energy_calc(double * k_i, const double * Qij) const ;
+  virtual bool is_periodic(int axis) const { return axis<3; }
   virtual int backwardPTP(double *, const double * ) const ;
     
   Geometry_Bulk(const struct Simulation_Parameters *);
