@@ -6,7 +6,7 @@
 #include "integrator_euler.h"
 
 template<class Exec>
-Euler<Exec>::Euler( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param ) : Integrator( lc_pointer), exec(lc_pointer)
+Euler<Exec>::Euler( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param ) : Integrator( lc_pointer), exec(lc_pointer, sim_param)
 {
   dt=sim_param->dt;
   k_1=exec.alloc(5L*Nx*Ny*Nz);

@@ -1,7 +1,8 @@
 #ifndef PHYSICS_HOMEOTROPIC_H
 #define PHYSICS_HOMEOTROPIC_H
 // Boundary_Homeotropic functional derivatives and energy density,
-// shared by the CPU and GPU code. Formulas moved unchanged from boundary_homeotropic.cpp.
+// shared by the CPU and GPU code. T is the floating
+// point type of the evaluation (double, or float for the GPU mixed precision). Formulas moved unchanged from boundary_homeotropic.cpp.
 #include "physics.h"
 
 #define QN00 QN[0] 
@@ -55,67 +56,67 @@
 #define  Q_11_22 ddQ[28]
 #define  Q_12_22 ddQ[29]
 
-MARLICS_HD inline double homeotropic_functional_derivative_00(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3])
+template<class T> MARLICS_HD inline T homeotropic_functional_derivative_00(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3])
 {
-  const double sigma=P.sigma, a=P.a, bb=P.bb, cc=P.cc, L1=P.L1, L2=P.L2, L3=P.L3, Lq=P.Lq, Ls=P.Ls, Lq_tilde=P.Lq_tilde, Lambda=P.Lambda, Lambda_s=P.Lambda_s, S_eq=P.S_eq, deltaepslon=P.deltaepslon, elecfieldx=P.elecfieldx, elecfieldy=P.elecfieldy, elecfieldz=P.elecfieldz;
-  const double Wo1=B.Wo1;
+  const T sigma=T(P.sigma), a=T(P.a), bb=T(P.bb), cc=T(P.cc), L1=T(P.L1), L2=T(P.L2), L3=T(P.L3), Lq=T(P.Lq), Ls=T(P.Ls), Lq_tilde=T(P.Lq_tilde), Lambda=T(P.Lambda), Lambda_s=T(P.Lambda_s), S_eq=T(P.S_eq), deltaepslon=T(P.deltaepslon), elecfieldx=T(P.elecfieldx), elecfieldy=T(P.elecfieldy), elecfieldz=T(P.elecfieldz);
+  const T Wo1=T(B.Wo1);
 
-  double  Q0_00= (0.5*S_eq*(3.0*v[0]*v[0]-1.0));
+  T  Q0_00= (T(0.5)*S_eq*(T(3.0)*v[0]*v[0]-T(1.0)));
   
-  return Lambda_s*((-3*Wo1*QN00 + 3*Wo1*Q0_00 - 3*L3*QN01*Q_00_1*v[0] - 3*L3*QN02*Q_00_2*v[0] - 2*L2*Q_01_1*v[0] + Ls*Q_01_1*v[0] - 2*L2*Q_02_2*v[0] + Ls*Q_02_2*v[0] + 3*Lq_tilde*QN02*v[1] - 3*L1*Q_00_1*v[1] - 3*L3*QN11*Q_00_1*v[1] - 3*L3*QN12*Q_00_2*v[1] + L2*Q_01_0*v[1] - 2*Ls*Q_01_0*v[1] + L2*Q_11_1*v[1] + Ls*Q_11_1*v[1] + L2*Q_12_2*v[1] + Ls*Q_12_2*v[1] - (3*Lq_tilde*QN01 + 3*L3*QN12*Q_00_1 + (3*L1 + L2 + Ls)*Q_00_2 - 3*L3*(QN00 + QN11)*Q_00_2 - (L2 - 2*Ls)*Q_02_0 + (L2 + Ls)*(Q_11_2 - Q_12_1))*v[2] - Q_00_0*(3*L1*v[0] + 2*L2*v[0] + 2*Ls*v[0] + 3*L3*QN00*v[0] + 3*L3*QN01*v[1] + 3*L3*QN02*v[2]))/3.);
+  return Lambda_s*((-3*Wo1*QN00 + 3*Wo1*Q0_00 - 3*L3*QN01*Q_00_1*v[0] - 3*L3*QN02*Q_00_2*v[0] - 2*L2*Q_01_1*v[0] + Ls*Q_01_1*v[0] - 2*L2*Q_02_2*v[0] + Ls*Q_02_2*v[0] + 3*Lq_tilde*QN02*v[1] - 3*L1*Q_00_1*v[1] - 3*L3*QN11*Q_00_1*v[1] - 3*L3*QN12*Q_00_2*v[1] + L2*Q_01_0*v[1] - 2*Ls*Q_01_0*v[1] + L2*Q_11_1*v[1] + Ls*Q_11_1*v[1] + L2*Q_12_2*v[1] + Ls*Q_12_2*v[1] - (3*Lq_tilde*QN01 + 3*L3*QN12*Q_00_1 + (3*L1 + L2 + Ls)*Q_00_2 - 3*L3*(QN00 + QN11)*Q_00_2 - (L2 - 2*Ls)*Q_02_0 + (L2 + Ls)*(Q_11_2 - Q_12_1))*v[2] - Q_00_0*(3*L1*v[0] + 2*L2*v[0] + 2*Ls*v[0] + 3*L3*QN00*v[0] + 3*L3*QN01*v[1] + 3*L3*QN02*v[2]))/T(3.));
 }
 
-MARLICS_HD inline double homeotropic_functional_derivative_01(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3])
+template<class T> MARLICS_HD inline T homeotropic_functional_derivative_01(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3])
 {
-  const double sigma=P.sigma, a=P.a, bb=P.bb, cc=P.cc, L1=P.L1, L2=P.L2, L3=P.L3, Lq=P.Lq, Ls=P.Ls, Lq_tilde=P.Lq_tilde, Lambda=P.Lambda, Lambda_s=P.Lambda_s, S_eq=P.S_eq, deltaepslon=P.deltaepslon, elecfieldx=P.elecfieldx, elecfieldy=P.elecfieldy, elecfieldz=P.elecfieldz;
-  const double Wo1=B.Wo1;
+  const T sigma=T(P.sigma), a=T(P.a), bb=T(P.bb), cc=T(P.cc), L1=T(P.L1), L2=T(P.L2), L3=T(P.L3), Lq=T(P.Lq), Ls=T(P.Ls), Lq_tilde=T(P.Lq_tilde), Lambda=T(P.Lambda), Lambda_s=T(P.Lambda_s), S_eq=T(P.S_eq), deltaepslon=T(P.deltaepslon), elecfieldx=T(P.elecfieldx), elecfieldy=T(P.elecfieldy), elecfieldz=T(P.elecfieldz);
+  const T Wo1=T(B.Wo1);
 
-    double  Q0_01= (0.5*S_eq*(3.0*v[0]*v[1]));
+    T  Q0_01= (T(0.5)*S_eq*(T(3.0)*v[0]*v[1]));
 
-  return Lambda_s*((-2*Wo1*QN01 + 2*Wo1*Q0_01 - Lq_tilde*QN02*v[0] - Ls*Q_00_1*v[0] - 2*L3*QN01*Q_01_1*v[0] - 2*L3*QN02*Q_01_2*v[0] - L2*Q_11_1*v[0] - L2*Q_12_2*v[0] + Lq_tilde*QN12*v[1] - L2*Q_00_0*v[1] - 2*L1*Q_01_1*v[1] - L2*Q_01_1*v[1] - Ls*Q_01_1*v[1] - 2*L3*QN11*Q_01_1*v[1] - 2*L3*QN12*Q_01_2*v[1] - L2*Q_02_2*v[1] - Ls*Q_11_0*v[1] - (Lq_tilde*(-QN00 + QN11) + 2*L3*QN12*Q_01_1 + 2*(L1 - L3*(QN00 + QN11))*Q_01_2 + Ls*(Q_02_1 + Q_12_0))*v[2] - Q_01_0*(2*L1*v[0] + L2*v[0] + Ls*v[0] + 2*L3*QN00*v[0] + 2*L3*QN01*v[1] + 2*L3*QN02*v[2]))/2.);
+  return Lambda_s*((-2*Wo1*QN01 + 2*Wo1*Q0_01 - Lq_tilde*QN02*v[0] - Ls*Q_00_1*v[0] - 2*L3*QN01*Q_01_1*v[0] - 2*L3*QN02*Q_01_2*v[0] - L2*Q_11_1*v[0] - L2*Q_12_2*v[0] + Lq_tilde*QN12*v[1] - L2*Q_00_0*v[1] - 2*L1*Q_01_1*v[1] - L2*Q_01_1*v[1] - Ls*Q_01_1*v[1] - 2*L3*QN11*Q_01_1*v[1] - 2*L3*QN12*Q_01_2*v[1] - L2*Q_02_2*v[1] - Ls*Q_11_0*v[1] - (Lq_tilde*(-QN00 + QN11) + 2*L3*QN12*Q_01_1 + 2*(L1 - L3*(QN00 + QN11))*Q_01_2 + Ls*(Q_02_1 + Q_12_0))*v[2] - Q_01_0*(2*L1*v[0] + L2*v[0] + Ls*v[0] + 2*L3*QN00*v[0] + 2*L3*QN01*v[1] + 2*L3*QN02*v[2]))/T(2.));
 }
 
-MARLICS_HD inline double homeotropic_functional_derivative_02(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3])
+template<class T> MARLICS_HD inline T homeotropic_functional_derivative_02(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3])
 {
-  const double sigma=P.sigma, a=P.a, bb=P.bb, cc=P.cc, L1=P.L1, L2=P.L2, L3=P.L3, Lq=P.Lq, Ls=P.Ls, Lq_tilde=P.Lq_tilde, Lambda=P.Lambda, Lambda_s=P.Lambda_s, S_eq=P.S_eq, deltaepslon=P.deltaepslon, elecfieldx=P.elecfieldx, elecfieldy=P.elecfieldy, elecfieldz=P.elecfieldz;
-  const double Wo1=B.Wo1;
+  const T sigma=T(P.sigma), a=T(P.a), bb=T(P.bb), cc=T(P.cc), L1=T(P.L1), L2=T(P.L2), L3=T(P.L3), Lq=T(P.Lq), Ls=T(P.Ls), Lq_tilde=T(P.Lq_tilde), Lambda=T(P.Lambda), Lambda_s=T(P.Lambda_s), S_eq=T(P.S_eq), deltaepslon=T(P.deltaepslon), elecfieldx=T(P.elecfieldx), elecfieldy=T(P.elecfieldy), elecfieldz=T(P.elecfieldz);
+  const T Wo1=T(B.Wo1);
 
-    double Q0_02= (0.5*S_eq*(3.0*v[0]*v[2]));
+    T Q0_02= (T(0.5)*S_eq*(T(3.0)*v[0]*v[2]));
   
- return Lambda_s*((-2*Wo1*QN02 + 2*Wo1*Q0_02 + Lq_tilde*QN01*v[0] + (L2 - Ls)*Q_00_2*v[0] - 2*L3*QN01*Q_02_1*v[0] - 2*L3*QN02*Q_02_2*v[0] + L2*Q_11_2*v[0] - L2*Q_12_1*v[0] - (Lq_tilde*(2*QN00 + QN11) + Ls*Q_01_2)*v[1] - 2*L1*Q_02_1*v[1] - 2*L3*QN11*Q_02_1*v[1] - 2*L3*QN12*Q_02_2*v[1] - Ls*Q_12_0*v[1] - ((L2 - Ls)*Q_00_0 + L2*Q_01_1 + QN12*(Lq_tilde + 2*L3*Q_02_1) + 2*L1*Q_02_2 + (L2 + Ls - 2*L3*(QN00 + QN11))*Q_02_2 - Ls*Q_11_0)*v[2] - Q_02_0*(2*L1*v[0] + L2*v[0] + Ls*v[0] + 2*L3*QN00*v[0] + 2*L3*QN01*v[1] + 2*L3*QN02*v[2]))/2.);
+ return Lambda_s*((-2*Wo1*QN02 + 2*Wo1*Q0_02 + Lq_tilde*QN01*v[0] + (L2 - Ls)*Q_00_2*v[0] - 2*L3*QN01*Q_02_1*v[0] - 2*L3*QN02*Q_02_2*v[0] + L2*Q_11_2*v[0] - L2*Q_12_1*v[0] - (Lq_tilde*(2*QN00 + QN11) + Ls*Q_01_2)*v[1] - 2*L1*Q_02_1*v[1] - 2*L3*QN11*Q_02_1*v[1] - 2*L3*QN12*Q_02_2*v[1] - Ls*Q_12_0*v[1] - ((L2 - Ls)*Q_00_0 + L2*Q_01_1 + QN12*(Lq_tilde + 2*L3*Q_02_1) + 2*L1*Q_02_2 + (L2 + Ls - 2*L3*(QN00 + QN11))*Q_02_2 - Ls*Q_11_0)*v[2] - Q_02_0*(2*L1*v[0] + L2*v[0] + Ls*v[0] + 2*L3*QN00*v[0] + 2*L3*QN01*v[1] + 2*L3*QN02*v[2]))/T(2.));
 }
 
-MARLICS_HD inline double homeotropic_functional_derivative_11(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3])
+template<class T> MARLICS_HD inline T homeotropic_functional_derivative_11(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3])
 {
-  const double sigma=P.sigma, a=P.a, bb=P.bb, cc=P.cc, L1=P.L1, L2=P.L2, L3=P.L3, Lq=P.Lq, Ls=P.Ls, Lq_tilde=P.Lq_tilde, Lambda=P.Lambda, Lambda_s=P.Lambda_s, S_eq=P.S_eq, deltaepslon=P.deltaepslon, elecfieldx=P.elecfieldx, elecfieldy=P.elecfieldy, elecfieldz=P.elecfieldz;
-  const double Wo1=B.Wo1;
+  const T sigma=T(P.sigma), a=T(P.a), bb=T(P.bb), cc=T(P.cc), L1=T(P.L1), L2=T(P.L2), L3=T(P.L3), Lq=T(P.Lq), Ls=T(P.Ls), Lq_tilde=T(P.Lq_tilde), Lambda=T(P.Lambda), Lambda_s=T(P.Lambda_s), S_eq=T(P.S_eq), deltaepslon=T(P.deltaepslon), elecfieldx=T(P.elecfieldx), elecfieldy=T(P.elecfieldy), elecfieldz=T(P.elecfieldz);
+  const T Wo1=T(B.Wo1);
   
-  double  Q0_11= (0.5*S_eq*(3.0*v[1]*v[1]-1.0));
+  T  Q0_11= (T(0.5)*S_eq*(T(3.0)*v[1]*v[1]-T(1.0)));
 
-  return Lambda_s*((-3*Wo1*QN11 + 3*Wo1*Q0_11 - 3*Lq_tilde*QN12*v[0] + L2*Q_00_0*v[0] + Ls*Q_00_0*v[0] + L2*Q_01_1*v[0] - 2*Ls*Q_01_1*v[0] + L2*Q_02_2*v[0] + Ls*Q_02_2*v[0] - 3*L1*Q_11_0*v[0] - 3*L3*QN00*Q_11_0*v[0] - 3*L3*QN01*Q_11_1*v[0] - 3*L3*QN02*Q_11_2*v[0] - 2*L2*Q_01_0*v[1] + Ls*Q_01_0*v[1] - 3*L3*QN01*Q_11_0*v[1] - 3*L1*Q_11_1*v[1] - 2*L2*Q_11_1*v[1] - 2*Ls*Q_11_1*v[1] - 3*L3*QN11*Q_11_1*v[1] - 3*L3*QN12*Q_11_2*v[1] - 2*L2*Q_12_2*v[1] + Ls*Q_12_2*v[1] + (3*Lq_tilde*QN01 - (L2 + Ls)*Q_00_2 + (L2 + Ls)*Q_02_0 - 3*L3*(QN02*Q_11_0 + QN12*Q_11_1) - (3*L1 + L2 + Ls)*Q_11_2 + 3*L3*(QN00 + QN11)*Q_11_2 + (L2 - 2*Ls)*Q_12_1)*v[2])/3.);
+  return Lambda_s*((-3*Wo1*QN11 + 3*Wo1*Q0_11 - 3*Lq_tilde*QN12*v[0] + L2*Q_00_0*v[0] + Ls*Q_00_0*v[0] + L2*Q_01_1*v[0] - 2*Ls*Q_01_1*v[0] + L2*Q_02_2*v[0] + Ls*Q_02_2*v[0] - 3*L1*Q_11_0*v[0] - 3*L3*QN00*Q_11_0*v[0] - 3*L3*QN01*Q_11_1*v[0] - 3*L3*QN02*Q_11_2*v[0] - 2*L2*Q_01_0*v[1] + Ls*Q_01_0*v[1] - 3*L3*QN01*Q_11_0*v[1] - 3*L1*Q_11_1*v[1] - 2*L2*Q_11_1*v[1] - 2*Ls*Q_11_1*v[1] - 3*L3*QN11*Q_11_1*v[1] - 3*L3*QN12*Q_11_2*v[1] - 2*L2*Q_12_2*v[1] + Ls*Q_12_2*v[1] + (3*Lq_tilde*QN01 - (L2 + Ls)*Q_00_2 + (L2 + Ls)*Q_02_0 - 3*L3*(QN02*Q_11_0 + QN12*Q_11_1) - (3*L1 + L2 + Ls)*Q_11_2 + 3*L3*(QN00 + QN11)*Q_11_2 + (L2 - 2*Ls)*Q_12_1)*v[2])/T(3.));
 }
 
-MARLICS_HD inline double homeotropic_functional_derivative_12(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3])
+template<class T> MARLICS_HD inline T homeotropic_functional_derivative_12(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3])
 {
-  const double sigma=P.sigma, a=P.a, bb=P.bb, cc=P.cc, L1=P.L1, L2=P.L2, L3=P.L3, Lq=P.Lq, Ls=P.Ls, Lq_tilde=P.Lq_tilde, Lambda=P.Lambda, Lambda_s=P.Lambda_s, S_eq=P.S_eq, deltaepslon=P.deltaepslon, elecfieldx=P.elecfieldx, elecfieldy=P.elecfieldy, elecfieldz=P.elecfieldz;
-  const double Wo1=B.Wo1;
+  const T sigma=T(P.sigma), a=T(P.a), bb=T(P.bb), cc=T(P.cc), L1=T(P.L1), L2=T(P.L2), L3=T(P.L3), Lq=T(P.Lq), Ls=T(P.Ls), Lq_tilde=T(P.Lq_tilde), Lambda=T(P.Lambda), Lambda_s=T(P.Lambda_s), S_eq=T(P.S_eq), deltaepslon=T(P.deltaepslon), elecfieldx=T(P.elecfieldx), elecfieldy=T(P.elecfieldy), elecfieldz=T(P.elecfieldz);
+  const T Wo1=T(B.Wo1);
 
-  double Q0_12= (0.5*S_eq*(3.0*v[1]*v[2]));
+  T Q0_12= (T(0.5)*S_eq*(T(3.0)*v[1]*v[2]));
   
- return Lambda_s*((2*Wo1*(-QN12 + Q0_12) + Lq_tilde*(QN00 + 2*QN11)*v[0] - Ls*Q_01_2*v[0] - Ls*Q_02_1*v[0] - 2*L1*Q_12_0*v[0] - 2*L3*QN00*Q_12_0*v[0] - 2*L3*QN01*Q_12_1*v[0] - 2*L3*QN02*Q_12_2*v[0] - Lq_tilde*QN01*v[1] + L2*Q_00_2*v[1] - L2*Q_02_0*v[1] + L2*Q_11_2*v[1] - Ls*Q_11_2*v[1] - 2*L3*QN01*Q_12_0*v[1] - 2*L1*Q_12_1*v[1] - L2*Q_12_1*v[1] - Ls*Q_12_1*v[1] - 2*L3*QN11*Q_12_1*v[1] - 2*L3*QN12*Q_12_2*v[1] - (-(Lq_tilde*QN02) - Ls*Q_00_1 + L2*Q_01_0 + L2*Q_11_1 - Ls*Q_11_1 + 2*L3*QN02*Q_12_0 + 2*L3*QN12*Q_12_1 + (2*L1 + L2 + Ls - 2*L3*(QN00 + QN11))*Q_12_2)*v[2])/2.);
+ return Lambda_s*((2*Wo1*(-QN12 + Q0_12) + Lq_tilde*(QN00 + 2*QN11)*v[0] - Ls*Q_01_2*v[0] - Ls*Q_02_1*v[0] - 2*L1*Q_12_0*v[0] - 2*L3*QN00*Q_12_0*v[0] - 2*L3*QN01*Q_12_1*v[0] - 2*L3*QN02*Q_12_2*v[0] - Lq_tilde*QN01*v[1] + L2*Q_00_2*v[1] - L2*Q_02_0*v[1] + L2*Q_11_2*v[1] - Ls*Q_11_2*v[1] - 2*L3*QN01*Q_12_0*v[1] - 2*L1*Q_12_1*v[1] - L2*Q_12_1*v[1] - Ls*Q_12_1*v[1] - 2*L3*QN11*Q_12_1*v[1] - 2*L3*QN12*Q_12_2*v[1] - (-(Lq_tilde*QN02) - Ls*Q_00_1 + L2*Q_01_0 + L2*Q_11_1 - Ls*Q_11_1 + 2*L3*QN02*Q_12_0 + 2*L3*QN12*Q_12_1 + (2*L1 + L2 + Ls - 2*L3*(QN00 + QN11))*Q_12_2)*v[2])/T(2.));
 }
 
-MARLICS_HD inline double homeotropic_energy_calculation(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3])
+template<class T> MARLICS_HD inline T homeotropic_energy_calculation(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3])
 {
-  const double sigma=P.sigma, a=P.a, bb=P.bb, cc=P.cc, L1=P.L1, L2=P.L2, L3=P.L3, Lq=P.Lq, Ls=P.Ls, Lq_tilde=P.Lq_tilde, Lambda=P.Lambda, Lambda_s=P.Lambda_s, S_eq=P.S_eq, deltaepslon=P.deltaepslon, elecfieldx=P.elecfieldx, elecfieldy=P.elecfieldy, elecfieldz=P.elecfieldz;
-  const double Wo1=B.Wo1;
+  const T sigma=T(P.sigma), a=T(P.a), bb=T(P.bb), cc=T(P.cc), L1=T(P.L1), L2=T(P.L2), L3=T(P.L3), Lq=T(P.Lq), Ls=T(P.Ls), Lq_tilde=T(P.Lq_tilde), Lambda=T(P.Lambda), Lambda_s=T(P.Lambda_s), S_eq=T(P.S_eq), deltaepslon=T(P.deltaepslon), elecfieldx=T(P.elecfieldx), elecfieldy=T(P.elecfieldy), elecfieldz=T(P.elecfieldz);
+  const T Wo1=T(B.Wo1);
   
-  double Q0_00= (0.5*S_eq*(3.0*v[0]*v[0]-1.0));
-  double Q0_01= (0.5*S_eq*(3.0*v[0]*v[1]));
-  double Q0_02= (0.5*S_eq*(3.0*v[0]*v[2]));
-  double Q0_11= (0.5*S_eq*(3.0*v[1]*v[1]-1.0));
-  double Q0_12= (0.5*S_eq*(3.0*v[1]*v[2]));
-  return 0.5*Wo1*(pow(QN00 - Q0_00,2) + 2*pow(QN01 - Q0_01,2) + 2*pow(QN02 - Q0_02,2) + pow(QN11 - Q0_11,2) + pow(QN00 + QN11 - Q0_00 - Q0_11,2) + 2*pow(QN12 - Q0_12,2));
+  T Q0_00= (T(0.5)*S_eq*(T(3.0)*v[0]*v[0]-T(1.0)));
+  T Q0_01= (T(0.5)*S_eq*(T(3.0)*v[0]*v[1]));
+  T Q0_02= (T(0.5)*S_eq*(T(3.0)*v[0]*v[2]));
+  T Q0_11= (T(0.5)*S_eq*(T(3.0)*v[1]*v[1]-T(1.0)));
+  T Q0_12= (T(0.5)*S_eq*(T(3.0)*v[1]*v[2]));
+  return T(0.5)*Wo1*(pow(QN00 - Q0_00,2) + 2*pow(QN01 - Q0_01,2) + 2*pow(QN02 - Q0_02,2) + pow(QN11 - Q0_11,2) + pow(QN00 + QN11 - Q0_00 - Q0_11,2) + 2*pow(QN12 - Q0_12,2));
 }
 
 #undef QN00

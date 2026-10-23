@@ -37,7 +37,7 @@ struct LatticeView
   const BoundaryParams * bc;
 };
 
-MARLICS_HD inline void boundary_derivative(const BulkParams& P, const BoundaryParams& B, const double QN[5], const double dQ[15], const double v[3], double out[5])
+template<class T> MARLICS_HD inline void boundary_derivative(const BulkParams& P, const BoundaryParams& B, const T QN[5], const T dQ[15], const T v[3], double out[5])
 {
   switch(B.kind)
     {
@@ -74,7 +74,17 @@ MARLICS_HD inline double boundary_energy(const BulkParams& P, const BoundaryPara
 
 MARLICS_HD inline int lattice_index(const LatticeView& L, int i, int j, int k) { return (k*L.Ny+j)*L.Nx+i; }
 
-//Bulk site (point_type 1): central differences, wrapping around periodic axes.
+//Copy of a double array in the evaluation type Real (no-op for double).
+template<class Real, int n> struct RealArray
+{
+  Real x[n];
+  MARLICS_HD RealArray(const double * a) { for(int i=0; i<n; i++) x[i]=Real(a[i]); }
+};
+
+//Bulk site (point_type 1): central differences, wrapping around periodic axes. The differences are
+//taken in double; Real is the type the functional derivative is evaluated in (float for the GPU
+//mixed precision).
+template<class Real=double>
 MARLICS_HD inline void bulk_site_force(const LatticeView& L, const double * Qij, int s, double out[5])
 {
   const int Nx=L.Nx, Ny=L.Ny, Nz=L.Nz;
@@ -104,14 +114,19 @@ MARLICS_HD inline void bulk_site_force(const LatticeView& L, const double * Qij,
     }
   #undef Q_AT
 
-  out[0]=ldg_functional_derivative_00(L.bulk,QN,dQ,ddQ,v);
-  out[1]=ldg_functional_derivative_01(L.bulk,QN,dQ,ddQ,v);
-  out[2]=ldg_functional_derivative_02(L.bulk,QN,dQ,ddQ,v);
-  out[3]=ldg_functional_derivative_11(L.bulk,QN,dQ,ddQ,v);
-  out[4]=ldg_functional_derivative_12(L.bulk,QN,dQ,ddQ,v);
+  const RealArray<Real,5> q(QN);
+  const RealArray<Real,15> d(dQ);
+  const RealArray<Real,30> dd(ddQ);
+  const RealArray<Real,3> n(v);
+  out[0]=ldg_functional_derivative_00<Real>(L.bulk,q.x,d.x,dd.x,n.x);
+  out[1]=ldg_functional_derivative_01<Real>(L.bulk,q.x,d.x,dd.x,n.x);
+  out[2]=ldg_functional_derivative_02<Real>(L.bulk,q.x,d.x,dd.x,n.x);
+  out[3]=ldg_functional_derivative_11<Real>(L.bulk,q.x,d.x,dd.x,n.x);
+  out[4]=ldg_functional_derivative_12<Real>(L.bulk,q.x,d.x,dd.x,n.x);
 }
 
 //Surface site: first derivatives from its stencil, then the natural boundary condition.
+template<class Real=double>
 MARLICS_HD inline void surface_site_force(const LatticeView& L, const double * Qij, const SurfaceSite& S, double out[5])
 {
   double QN[5], dQ[15];
@@ -121,7 +136,10 @@ MARLICS_HD inline void surface_site_force(const LatticeView& L, const double * Q
       QN[ll]=Qij[5*S.site+ll];
       for(int a=0; a<3; a++) dQ[5*a+ll]=S.w[a]*(Qij[5*S.np[a]+ll]-Qij[5*S.nm[a]+ll])*L.d_1[a];
     }
-  boundary_derivative(L.bulk,L.bc[S.bc],QN,dQ,S.v,out);
+  const RealArray<Real,5> q(QN);
+  const RealArray<Real,15> d(dQ);
+  const RealArray<Real,3> n(S.v);
+  boundary_derivative<Real>(L.bulk,L.bc[S.bc],q.x,d.x,n.x,out);
 }
 
 //Neighbour of site s along axis in direction dir (+1/-1). Outside points and non-periodic domain

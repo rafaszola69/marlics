@@ -9,7 +9,7 @@
 
 template<class Exec>
 DP5<Exec>::DP5( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param, const ButcherTableau & t ) : Integrator( lc_pointer),
-                                   exec(lc_pointer),
+                                   exec(lc_pointer, sim_param),
                                    tableau(t),
                                    Atol(sim_param->Atol),
                                    Rtol(sim_param->Rtol),

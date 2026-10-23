@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include <cstring>
 #include <cuda_runtime.h>
 #include "driver.h"
 #include "physics.h"
@@ -72,20 +73,20 @@ namespace gpu
     if(threadIdx.x==0) { out[blockIdx.x].sum0=s0[0]; out[blockIdx.x].sum1=s1[0]; out[blockIdx.x].max=m[0]; }
   }
 
-  __global__ void bulk_forces(LatticeView L, const double * Qij, double * k_i)
+  template<class Real> __global__ void bulk_forces(LatticeView L, const double * Qij, double * k_i)
   {
     const long n=(long)L.Nx*L.Ny*L.Nz;
     for(long s=blockIdx.x*(long)blockDim.x+threadIdx.x; s<n; s+=(long)blockDim.x*gridDim.x)
       {
-        if(L.point_type[s]==1) bulk_site_force(L,Qij,s,&k_i[5*s]);
+        if(L.point_type[s]==1) bulk_site_force<Real>(L,Qij,s,&k_i[5*s]);
         else for(int ll=0; ll<=4; ll++) k_i[5*s+ll]=0.;
       }
   }
 
-  __global__ void surface_forces(LatticeView L, const double * Qij, double * k_i)
+  template<class Real> __global__ void surface_forces(LatticeView L, const double * Qij, double * k_i)
   {
     for(int n=blockIdx.x*blockDim.x+threadIdx.x; n<L.n_surface; n+=blockDim.x*gridDim.x)
-      surface_site_force(L,Qij,L.surface[n],&k_i[5*L.surface[n].site]);
+      surface_site_force<Real>(L,Qij,L.surface[n],&k_i[5*L.surface[n].site]);
   }
 
   __global__ void bulk_energies(LatticeView L, const double * Qij, double * e)
@@ -112,7 +113,10 @@ class CudaExec
  public:
 
   //Copies the lattice description (point types, surface sites, anchoring parameters) to the GPU.
-  CudaExec(GEOMETRY * g) : n_sites((long)g->Nx*g->Ny*g->Nz), Q_dev(NULL), energy_buffer(NULL)
+  //gpu_precision mixed: the functional derivatives are evaluated in float (Q, the finite
+  //differences, the integrator and the energy stay in double).
+  CudaExec(GEOMETRY * g, const Simulation_Parameters * sim_param=NULL) : n_sites((long)g->Nx*g->Ny*g->Nz), Q_dev(NULL), energy_buffer(NULL),
+    mixed(sim_param!=NULL && strcasecmp(sim_param->gpu_precision,"mixed")==0)
   {
     const LatticeView host=g->view();
     L=host;
@@ -142,7 +146,7 @@ class CudaExec
 
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop,0));
-    std::cout << "GPU: " << prop.name << ", " << prop.totalGlobalMem/1048576 << " MiB.\n";
+    std::cout << "GPU: " << prop.name << ", " << prop.totalGlobalMem/1048576 << " MiB, " << (mixed ? "mixed" : "double") << " precision.\n";
   }
 
   ~CudaExec()
@@ -204,8 +208,16 @@ class CudaExec
 
   void fill_ki(double * k_i, const double * Qij) const
   {
-    gpu::bulk_forces<<<gpu::blocks(n_sites),gpu::threads>>>(L,Qij,k_i);
-    if(L.n_surface>0) gpu::surface_forces<<<gpu::blocks(L.n_surface),gpu::threads>>>(L,Qij,k_i);
+    if(mixed)
+      {
+        gpu::bulk_forces<float><<<gpu::blocks(n_sites),gpu::threads>>>(L,Qij,k_i);
+        if(L.n_surface>0) gpu::surface_forces<float><<<gpu::blocks(L.n_surface),gpu::threads>>>(L,Qij,k_i);
+      }
+    else
+      {
+        gpu::bulk_forces<double><<<gpu::blocks(n_sites),gpu::threads>>>(L,Qij,k_i);
+        if(L.n_surface>0) gpu::surface_forces<double><<<gpu::blocks(L.n_surface),gpu::threads>>>(L,Qij,k_i);
+      }
     CUDA_CHECK(cudaGetLastError());
   }
 
@@ -236,6 +248,7 @@ class CudaExec
   }
 
   const long n_sites;
+  const bool mixed;
   LatticeView L;
   void * partial;
   double * Q_dev;

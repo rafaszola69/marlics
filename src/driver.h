@@ -121,6 +121,7 @@ struct Simulation_Parameters
 
   char integrator_type[200];  
   char device[20]="cpu";    //cpu or gpu
+  char gpu_precision[20]="double";  //double or mixed (functional derivatives in float)
   double Atol=0.001;
   double Rtol=0.001;
   double prefac=0.8;

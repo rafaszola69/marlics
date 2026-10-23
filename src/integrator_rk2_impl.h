@@ -6,7 +6,7 @@
 #include "integrator_rk2.h"
 
 template<class Exec>
-RK2<Exec>::RK2( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param ) : Integrator( lc_pointer), exec(lc_pointer)
+RK2<Exec>::RK2( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param ) : Integrator( lc_pointer), exec(lc_pointer, sim_param)
 {
   dt=sim_param->dt;
   Qtij=exec.alloc(5L*Nx*Ny*Nz);

@@ -637,6 +637,17 @@ int driver::parse_input_file(char input_name[])
 
           
         }
+    else if ( strcasecmp(parser,"gpu_precision") == 0 )
+        {
+          error_handler=fscanf(input_file,"%19s",sim_param.gpu_precision);
+          error_check(error_handler,parser);
+          if( strcasecmp(sim_param.gpu_precision,"double")!=0 && strcasecmp(sim_param.gpu_precision,"mixed")!=0 )
+            {
+              std::cout << "gpu_precision must be double or mixed (found " << sim_param.gpu_precision << ").\nAborting the program.\n";
+              exit(1);
+            }
+          garbage=fgets(garbage,400,input_file);
+        }
     else if ( strcasecmp(parser,"device") == 0 )
         {
           error_handler=fscanf(input_file,"%19s",sim_param.device);

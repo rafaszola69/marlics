@@ -20,7 +20,7 @@ static bool not_finite(double x)
 //FIRE minimizer. The force is the same right-hand side used by the time integrators (fill_ki),
 //so FIRE converges to the same equilibrium as DP5 & co., boundary conditions included.
 template<class Exec>
-FIRE<Exec>::FIRE( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param, double alpha_init, double alpha_min ) : Integrator( lc_pointer), exec(lc_pointer)
+FIRE<Exec>::FIRE( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param, double alpha_init, double alpha_min ) : Integrator( lc_pointer), exec(lc_pointer, sim_param)
 {
   dt=sim_param->dt;
   force=exec.alloc(5L*Nx*Ny*Nz);

@@ -17,7 +17,7 @@ class CpuExec
 {
  public:
 
-  CpuExec(GEOMETRY * g) : geometry(g), n_sites(g->Nx*g->Ny*g->Nz), energy_buffer(NULL) {}
+  CpuExec(GEOMETRY * g, const Simulation_Parameters * sim_param=NULL) : geometry(g), n_sites(g->Nx*g->Ny*g->Nz), energy_buffer(NULL) {}
   ~CpuExec() { free(energy_buffer); }
 
   static const char * name() { return "CPU"; }
