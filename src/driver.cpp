@@ -13,8 +13,7 @@
 #include "geometry_wedge2.h"
 #include "boundary.h"
 #include "integrator.h"
-#include "fire_integrator_el.h" 
-#include "fire_integrator.h" 
+#include "fire_integrator.h"
 #include "integrator_dp5.h" 
 #include "integrator_dp5_v2.h" 
 #include "integrator_dp5_noise.h" 
@@ -488,8 +487,9 @@ void driver::setup_Simulation(void)
       else if ( strcasecmp(sim_param.integrator_type,"FIRE_el") == 0 )
         {
   
-          LcS_Integrator= new FIRE_el(LcS_Geometry, & sim_param );
-          std::cout << "Loading the FIRE w/ Euler-Lagrange integrator.\n\n";
+          //Kept for old input files: same as FIRE, with the alpha values the former FIRE_el used.
+          LcS_Integrator= new FIRE(LcS_Geometry, & sim_param, 0.4, 0.3 );
+          std::cout << "Loading the FIRE integrator (FIRE_el alpha parameters).\n\n";
   
         }
       else if ( strcasecmp(sim_param.integrator_type,"PTP") == 0 )

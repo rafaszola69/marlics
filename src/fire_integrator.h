@@ -21,7 +21,7 @@ class FIRE : public Integrator
   
   virtual bool evolve( double *, double *, double);    
   virtual ~FIRE(void) {};
-  FIRE( GEOMETRY  * , const struct Simulation_Parameters * );
+  FIRE( GEOMETRY  * , const struct Simulation_Parameters *, double alpha_init=0.3, double alpha_min=0.1 );
 
 
 };

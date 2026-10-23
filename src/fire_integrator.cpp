@@ -17,8 +17,9 @@
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define min(a,b) ((a) < (b) ? a : b)
 
-//Dormand-Prince integrator
-FIRE::FIRE( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param ) : Integrator( lc_pointer)
+//FIRE minimizer. The force is the same right-hand side used by the time integrators (fill_ki),
+//so FIRE converges to the same equilibrium as DP5 & co., boundary conditions included.
+FIRE::FIRE( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_param, double alpha_init, double alpha_min ) : Integrator( lc_pointer)
 {
   dt=sim_param->dt;
   //allocate the ith-stage array:
@@ -29,9 +30,9 @@ FIRE::FIRE( GEOMETRY  * lc_pointer, const struct Simulation_Parameters *sim_para
   
   dtmin = dt*0.01;
   dtMax = dt * 100;
-  alphainit = 0.3;
+  alphainit = alpha_init;
   scaleAlpha = 0.99;
-  alphaMin = 0.1;
+  alphaMin = alpha_min;
   scaleP =  1.1 ;
   scaleM =  0.9 ;
   Nmin = 10;
@@ -53,7 +54,7 @@ bool FIRE::evolve( double * Qij, double *time, double tf )
   #pragma omp parallel default(shared) private(ll)
   {
     #pragma omp barrier
-    sample_geometry->compute_forces(force,Qij);
+    sample_geometry->fill_ki(force,Qij);
     #pragma omp barrier
     while(*time<tf && continue_condition)
     {
@@ -66,7 +67,7 @@ bool FIRE::evolve( double * Qij, double *time, double tf )
         for( ll=0; ll<5*Nx*Ny*Nz;ll++) vQij[ll]+=0.5*dt*force[ll];
 
       #pragma omp barrier
-        sample_geometry->compute_forces(force,Qijt);
+        sample_geometry->fill_ki(force,Qijt);
       #pragma omp barrier
             
       #pragma omp for simd schedule(simd:dynamic,new_chunk_size)          
