@@ -4,12 +4,21 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <cstdint>
 #include "geometry.h"
 #include "integrator.h"
 #include "fire_integrator.h"
 
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define min(a,b) ((a) < (b) ? a : b)
+
+//NaN/inf test on the bit pattern: with -Ofast (finite-math-only) std::isfinite is optimized away.
+static bool not_finite(double x)
+{
+  uint64_t bits;
+  memcpy(&bits,&x,sizeof(bits));
+  return ((bits>>52)&0x7ff)==0x7ff;
+}
 
 //FIRE minimizer. The force is the same right-hand side used by the time integrators (fill_ki),
 //so FIRE converges to the same equilibrium as DP5 & co., boundary conditions included.
@@ -64,7 +73,7 @@ bool FIRE::evolve( double * Qij, double *time, double tf )
 
         #pragma omp single
           {
-            if(!std::isfinite(f2))
+            if(not_finite(f2))
               {
                 printf("NaN found in the system at time %g.\nAborting the program.\n",*time);
                 exit(10);
