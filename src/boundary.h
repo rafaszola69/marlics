@@ -15,8 +15,13 @@ class BOUNDARY: public ENERGY
   double * Wo;
   
   std::string condition_name;
+
+  //Plain copy of the anchoring parameters for the functions shared with the GPU (physics_*.h).
+  BoundaryParams bc_params;
   
- public:
+public:
+
+  const BoundaryParams & params() const { return bc_params; }
     
   BOUNDARY(const Simulation_Parameters *, int);
   virtual ~BOUNDARY() {};

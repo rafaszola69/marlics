@@ -7,9 +7,6 @@ class Geometry_Bulk : public GEOMETRY
   
   
  public:
-
-
-  virtual void fill_ki(double *, const double * ) const ;
   virtual bool is_periodic(int axis) const { return axis<3; }
   virtual int backwardPTP(double *, const double * ) const ;
     

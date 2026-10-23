@@ -38,94 +38,16 @@ Geometry_Custom::~Geometry_Custom()
   
 }
 
-void  Geometry_Custom::fill_ki(double * k_i,
-			       const double * Qij)  const 
+void Geometry_Custom::surface_stencil(int i, int j, int k, int nm[3], int np[3]) const
 {
-
-  #pragma omp for simd schedule(dynamic,1) collapse(2)  
-  for( int k= 0; k< Nz; k++)
-  {
-    for( int j= 0; j< Ny; j++)
+  const int s=(k*Ny+j)*Nx+i;
+  //One-sided differences opposite to the normal (periodic box); no derivative along zero components.
+  const int c[3]={i,j,k}, n[3]={Nx,Ny,Nz}, step[3]={1,Nx,Nx*Ny};
+  for(int a=0; a<3; a++)
     {
-      for( int i= 0; i< Nx; i++)
-      {
-        
-        int ip1,jp1,kp1, im1, jm1, km1, ll;
-        double dQ[15];
-        double ddQ[30];
-        double QN[5];
-        
-        if(point_type[(k*Ny+j)*Nx+i] == 1)
-        {
-
-          //check_bulk_limits( i,  j,  k);  
-          ip1= (i+1)%Nx;
-          jp1= (j+1)%Ny;
-          kp1= (k+1)%Nz;
-          im1= (i-1+Nx)%Nx;
-          jm1= (j-1+Ny)%Ny;
-          km1= (k-1+Nz)%Nz;
-          
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]= 0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= 0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]= 0.5*(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-          
-          //Calculate second derivatives of Qij:
-          for(ll=0; ll<=4;ll++) ddQ[ll]= (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1*dx_1;
-          for(ll=0; ll<=4;ll++) ddQ[ll+5]= 0.25*(Qij[5*((k*Ny+jp1)*Nx+ip1)+ll]+Qij[5*((k*Ny+jm1)*Nx+im1)+ll]-Qij[5*((k*Ny+jp1)*Nx+im1)+ll]-Qij[5*((k*Ny+jm1)*Nx+ip1)+ll])*dx_1*dy_1;
-          for(ll=0; ll<=4;ll++) ddQ[10+ll]= 0.25*(Qij[5*((kp1*Ny+j)*Nx+ip1)+ll]+Qij[5*((km1*Ny+j)*Nx+im1)+ll]-Qij[5*((kp1*Ny+j)*Nx+im1)+ll]-Qij[5*((km1*Ny+j)*Nx+ip1)+ll])*dx_1*dz_1;
-          for(ll=0; ll<=4;ll++) ddQ[15+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1*dy_1;
-          for(ll=0; ll<=4;ll++) ddQ[20+ll]= 0.25*(Qij[5*((kp1*Ny+jp1)*Nx+i)+ll]+Qij[5*((km1*Ny+jm1)*Nx+i)+ll]-Qij[5*((kp1*Ny+jm1)*Nx+i)+ll]-Qij[5*((km1*Ny+jp1)*Nx+i)+ll])*dz_1*dy_1;
-          for(ll=0; ll<=4;ll++) ddQ[25+ll]= (Qij[5*((kp1*Ny+j)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1*dz_1;
-    
-          k_i[5*(Nx*(Ny*k+j)+i)+0]=bulk_energy.functional_derivative_00(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]); 
-          k_i[5*(Nx*(Ny*k+j)+i)+1]=bulk_energy.functional_derivative_01(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]); 
-          k_i[5*(Nx*(Ny*k+j)+i)+2]=bulk_energy.functional_derivative_02(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]); 
-          k_i[5*(Nx*(Ny*k+j)+i)+3]=bulk_energy.functional_derivative_11(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]); 
-          k_i[5*(Nx*(Ny*k+j)+i)+4]=bulk_energy.functional_derivative_12(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]);
-        }          
-        else if (point_type[(k*Ny+j)*Nx+i] == 0)
-        {
-          k_i[5*(Nx*(Ny*k+j)+i)+0]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+1]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+2]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+3]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+4]=0.;
-        }
-        else 
-        {
-          //check_surface_limits( i,  j,  k);
-          int bound=point_type[(k*Ny+j)*Nx+i]-2;
-          
-          //Boundary condtions:
-          
-          ip1= (v[(k*Ny+j)*Nx+i][0] >=0) ? i : (i+1)%Nx ;
-          jp1= (v[(k*Ny+j)*Nx+i][1] >=0) ? j : (j+1)%Ny ;
-          kp1= (v[(k*Ny+j)*Nx+i][2] >=0) ? k : (k+1)%Nz ;
-          
-          im1= (v[(k*Ny+j)*Nx+i][0] > 0) ? (i-1+Nx)%Nx : i ;
-          jm1= (v[(k*Ny+j)*Nx+i][1] > 0) ? (j-1+Ny)%Ny : j ;
-          km1= (v[(k*Ny+j)*Nx+i][2] > 0) ? (k-1+Nz)%Nz : k ;
-      
-    
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]=   (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-    
-          k_i[5*(Nx*(Ny*k+j)+i)+0]= bc_conditions[bound]->functional_derivative_00(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]);
-          k_i[5*(Nx*(Ny*k+j)+i)+1]= bc_conditions[bound]->functional_derivative_01(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]);
-          k_i[5*(Nx*(Ny*k+j)+i)+2]= bc_conditions[bound]->functional_derivative_02(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]);
-          k_i[5*(Nx*(Ny*k+j)+i)+3]= bc_conditions[bound]->functional_derivative_11(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]);
-          k_i[5*(Nx*(Ny*k+j)+i)+4]= bc_conditions[bound]->functional_derivative_12(QN,dQ,ddQ,v[(k*Ny+j)*Nx+i]);
-        }
-	    }
+      np[a]= v[s][a]>=0 ? s : s+(((c[a]+1)%n[a])-c[a])*step[a];
+      nm[a]= v[s][a]>0  ? s+(((c[a]-1+n[a])%n[a])-c[a])*step[a] : s;
     }
-  }
 }
 
 void  Geometry_Custom::test_derivatives( const char integrator_type[])  const 

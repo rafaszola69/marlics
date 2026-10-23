@@ -79,144 +79,26 @@ Geometry_Hemisphere::~Geometry_Hemisphere()
   
 }
 
-void  Geometry_Hemisphere::fill_ki(double * k_i,
-			       const double * Qij)  const 
+void Geometry_Hemisphere::surface_stencil(int i, int j, int k, int nm[3], int np[3]) const
 {
-  #pragma omp for simd schedule(dynamic,1) collapse(2)  
-  for( int k= 0; k< Nz; k++)
-  {
-    for( int j= 0; j< Ny; j++)
+  const int s=(k*Ny+j)*Nx+i;
+  if(point_type[s]==2)
     {
-      for( int i= 0; i< Nx; i++)
-	    {	
-
-        int ip1,jp1,kp1, im1, jm1, km1, ll;
-        double dQ[15];
-        double ddQ[30];
-        double QN[5];
-        double v[3];
-      
-	      if(point_type[(k*Ny+j)*Nx+i] == 1)
-        {
-          //check_bulk_limits( i,  j,  k);                    
-          ip1= (i+1);
-          jp1= (j+1);
-          kp1= (k+1);
-          im1= (i-1);
-          jm1= (j-1);
-          km1= (k-1);
-
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-    
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]= 0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= 0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]= 0.5*(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-    
-          //Calculate second derivatives of Qij:
-          for(ll=0; ll<=4;ll++) ddQ[ll]= (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1*dx_1;
-          for(ll=0; ll<=4;ll++) ddQ[ll+5]= 0.25*(Qij[5*((k*Ny+jp1)*Nx+ip1)+ll]+Qij[5*((k*Ny+jm1)*Nx+im1)+ll]-Qij[5*((k*Ny+jp1)*Nx+im1)+ll]-Qij[5*((k*Ny+jm1)*Nx+ip1)+ll])*dx_1*dy_1;
-          for(ll=0; ll<=4;ll++) ddQ[10+ll]= 0.25*(Qij[5*((kp1*Ny+j)*Nx+ip1)+ll]+Qij[5*((km1*Ny+j)*Nx+im1)+ll]-Qij[5*((kp1*Ny+j)*Nx+im1)+ll]-Qij[5*((km1*Ny+j)*Nx+ip1)+ll])*dx_1*dz_1;
-          for(ll=0; ll<=4;ll++) ddQ[15+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1*dy_1;
-          for(ll=0; ll<=4;ll++) ddQ[20+ll]= 0.25*(Qij[5*((kp1*Ny+jp1)*Nx+i)+ll]+Qij[5*((km1*Ny+jm1)*Nx+i)+ll]-Qij[5*((kp1*Ny+jm1)*Nx+i)+ll]-Qij[5*((km1*Ny+jp1)*Nx+i)+ll])*dz_1*dy_1;
-          for(ll=0; ll<=4;ll++) ddQ[25+ll]= (Qij[5*((kp1*Ny+j)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1*dz_1;
-    
-          k_i[5*(Nx*(Ny*k+j)+i)+0]=bulk_energy.functional_derivative_00(QN,dQ,ddQ,v); 
-          k_i[5*(Nx*(Ny*k+j)+i)+1]=bulk_energy.functional_derivative_01(QN,dQ,ddQ,v); 
-          k_i[5*(Nx*(Ny*k+j)+i)+2]=bulk_energy.functional_derivative_02(QN,dQ,ddQ,v); 
-          k_i[5*(Nx*(Ny*k+j)+i)+3]=bulk_energy.functional_derivative_11(QN,dQ,ddQ,v); 
-          k_i[5*(Nx*(Ny*k+j)+i)+4]=bulk_energy.functional_derivative_12(QN,dQ,ddQ,v);
-          
-        }  
-	      else if( point_type[(k*Ny+j)*Nx+i] == 2 )
-        {
-  
-          double dQ[15];
-          double ddQ[30];
-          double QN[5];
-          double v[3];
-
-          
-          int ip1= (i+1)%Nx;
-          int jp1= (j+1)%Ny;
-          int kp1= (k+1);
-          int im1= (i+Nx-1)%Nx;
-          int jm1= (j+Ny-1)%Ny;
-          int km1= k;
-          v[0]=0.0;
-          v[1]=0.0;
-          v[2]=-1.0;
-
-          for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-          //Calcule first derivatives of Qij:
-          for(int ll=0; ll<=4;ll++) dQ[ll]=0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(int ll=0; ll<=4;ll++) dQ[5+ll]=0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(int ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-            
-          k_i[5*(Nx*(Ny*k+j)+i)+0]= bc_conditions[0]->functional_derivative_00(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+1]= bc_conditions[0]->functional_derivative_01(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+2]= bc_conditions[0]->functional_derivative_02(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+3]= bc_conditions[0]->functional_derivative_11(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+4]= bc_conditions[0]->functional_derivative_12(QN,dQ,ddQ,v);
-        //check_surface_limits(i,j,k);
-        } 
-        else if( point_type[(k*Ny+j)*Nx+i] == 3 )
-        {
-  
-          //check_surface_limits( i,  j,  k);
-          double delta_x,delta_y,delta_z;
-          double rr;
-          double v[3];
-          
-          delta_x=(i-HNx)*dx;
-          delta_y=(j-HNy)*dy;
-          delta_z=(k-HNz)*dz;
-          rr=sqrt( delta_x*delta_x+delta_y*delta_y+delta_z*delta_z);
-                            
-          v[0]=delta_x/rr;
-          v[1]=delta_y/rr;
-          v[2]=delta_z/rr;
-          //Boundary condtions:
-    
-          ip1= i>=HNx ? i   : i+1 ;
-          jp1= j>=HNy ? j   : j+1 ;
-          kp1= k>=HNz ? k   : k+1 ;
-      
-          im1= i>=HNx ? i-1 : i ;
-          jm1= j>=HNy ? j-1 : j ;
-          km1= k>=HNz ? k-1 : k ;
-      
-    
-          for(ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-            
-    
-          //Calcule first derivatives of Qij:
-          for(ll=0; ll<=4;ll++) dQ[ll]=   (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-          for(ll=0; ll<=4;ll++) dQ[5+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-          for(ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-    
-          k_i[5*(Nx*(Ny*k+j)+i)+0]= bc_conditions[1]->functional_derivative_00(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+1]= bc_conditions[1]->functional_derivative_01(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+2]= bc_conditions[1]->functional_derivative_02(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+3]= bc_conditions[1]->functional_derivative_11(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+4]= bc_conditions[1]->functional_derivative_12(QN,dQ,ddQ,v);
-    
-    
-          //check_surface_limits(i,j,k);
-        }
-          else
-        {
-          k_i[5*(Nx*(Ny*k+j)+i)+0]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+1]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+2]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+3]=0.; 
-          k_i[5*(Nx*(Ny*k+j)+i)+4]=0.;
-        }
-
-      }
+      //Central differences in the (periodic) plane, one-sided upwards in z.
+      nm[0]=(k*Ny+j)*Nx+(i+Nx-1)%Nx;  np[0]=(k*Ny+j)*Nx+(i+1)%Nx;
+      nm[1]=(k*Ny+(j+Ny-1)%Ny)*Nx+i;  np[1]=(k*Ny+(j+1)%Ny)*Nx+i;
+      nm[2]=s;                         np[2]=s+Nx*Ny;
+      return;
     }
-  }
-  
+
+  //One-sided differences towards the centre of the droplet.
+  const int c[3]={i,j,k}, step[3]={1,Nx,Nx*Ny};
+  const double half[3]={HNx, HNy, HNz};
+  for(int a=0; a<3; a++)
+    {
+      nm[a]= c[a]>=half[a] ? s-step[a] : s;
+      np[a]= c[a]>=half[a] ? s         : s+step[a];
+    }
 }
 
 int * Geometry_Hemisphere::fill_point_type( void )  const 

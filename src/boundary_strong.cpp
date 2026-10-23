@@ -6,6 +6,7 @@ Strong_Boundary::Strong_Boundary(const Simulation_Parameters * sim_param, int bo
 {
 
   condition_name="strong";
+  bc_params.kind=BC_STRONG;
   std::cout << std::endl;
   
 } ;

@@ -7,9 +7,7 @@ class slab : public GEOMETRY
   
   
  public:
-
-
-  virtual void fill_ki(double *, const double * ) const ;
+  virtual void surface_stencil(int, int, int, int [3], int [3]) const ;
     
   slab(const struct Simulation_Parameters *);
   ~slab(void) {};

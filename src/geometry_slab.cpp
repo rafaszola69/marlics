@@ -29,141 +29,23 @@ slab::slab(const struct Simulation_Parameters * sim_param) : GEOMETRY (sim_param
 };
 
 
-void  slab::fill_ki(double * k_i,
-                    const double * Qij)  const 
+void slab::surface_stencil(int i, int j, int k, int nm[3], int np[3]) const
 {
-  
-  int k=0;
-  #pragma omp for schedule(dynamic,1) collapse(2)
-  for( int j= 0; j< Ny; j++)
+  const int s=(k*Ny+j)*Nx+i;
+  if(point_type[s]==2)
     {
-      for( int i= 0; i< Nx; i++)
-        {
-          double dQ[15];
-          double ddQ[30];
-          double QN[5];
-          double v[3];
-          
-          int ip1= (i+1)%Nx;
-          int jp1= (j+1)%Ny;
-          int kp1= (k+1);
-          int im1= (i+Nx-1)%Nx;
-          int jm1= (j+Ny-1)%Ny;
-          int km1= k;
-          v[0]=0.0;
-          v[1]=0.0;
-          v[2]=-1.0;
-      
-          for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-      
-          //Calcule first derivatives of Qij:
-          for(int ll=0; ll<=4;ll++) dQ[ll]=0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-            
-          for(int ll=0; ll<=4;ll++) dQ[5+ll]=0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-            
-          for(int ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-            
-          k_i[5*(Nx*(Ny*k+j)+i)+0]= bc_conditions[0]->functional_derivative_00(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+1]= bc_conditions[0]->functional_derivative_01(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+2]= bc_conditions[0]->functional_derivative_02(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+3]= bc_conditions[0]->functional_derivative_11(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+4]= bc_conditions[0]->functional_derivative_12(QN,dQ,ddQ,v);
-      
-        }
+      //Central differences in the (periodic) plane, one-sided upwards in z.
+      nm[0]=(k*Ny+j)*Nx+(i+Nx-1)%Nx;  np[0]=(k*Ny+j)*Nx+(i+1)%Nx;
+      nm[1]=(k*Ny+(j+Ny-1)%Ny)*Nx+i;  np[1]=(k*Ny+(j+1)%Ny)*Nx+i;
+      nm[2]=s;                         np[2]=s+Nx*Ny;
     }
-	  
-#pragma omp for schedule(dynamic,1) collapse(2) private(k)
-  for( k= 1; k< Nz-1; k++)
+  else
     {
-      for( int j= 0; j< Ny; j++)
-        {
-          for( int i= 0; i< Nx; i++)
-            {	
-              double dQ[15];
-              double ddQ[30];
-              double QN[5];
-              double v[3];
-      
-              //check_bulk_limits( i,  j,  k);  
-      
-              int ip1= (i+1)%Nx;
-              int jp1= (j+1)%Ny;
-              int kp1= (k+1);
-              int im1= (i+Nx-1)%Nx;
-              int jm1= (j+Ny-1)%Ny;
-              int km1= (k-1);
-      
-              for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-      
-              //Calcule first derivatives of Qij:
-              for(int ll=0; ll<=4;ll++) dQ[ll]= 0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-            
-              for(int ll=0; ll<=4;ll++) dQ[5+ll]= 0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-            
-              for(int ll=0; ll<=4;ll++) dQ[10+ll]= 0.5*(Qij[5*((kp1*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-      
-              //Calculate second derivatives of Qij:
-              for(int ll=0; ll<=4;ll++) ddQ[ll]= (Qij[5*((k*Ny+j)*Nx+ip1)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1*dx_1;
-                  
-              for(int ll=0; ll<=4;ll++) ddQ[ll+5]= 0.25*(Qij[5*((k*Ny+jp1)*Nx+ip1)+ll]+Qij[5*((k*Ny+jm1)*Nx+im1)+ll]-Qij[5*((k*Ny+jp1)*Nx+im1)+ll]-Qij[5*((k*Ny+jm1)*Nx+ip1)+ll])*dx_1*dy_1;
-            
-              for(int ll=0; ll<=4;ll++) ddQ[10+ll]= 0.25*(Qij[5*((kp1*Ny+j)*Nx+ip1)+ll]+Qij[5*((km1*Ny+j)*Nx+im1)+ll]-Qij[5*((kp1*Ny+j)*Nx+im1)+ll]-Qij[5*((km1*Ny+j)*Nx+ip1)+ll])*dx_1*dz_1;
-      
-              for(int ll=0; ll<=4;ll++) ddQ[15+ll]= (Qij[5*((k*Ny+jp1)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1*dy_1;
-      
-              for(int ll=0; ll<=4;ll++) ddQ[20+ll]= 0.25*(Qij[5*((kp1*Ny+jp1)*Nx+i)+ll]+Qij[5*((km1*Ny+jm1)*Nx+i)+ll]-Qij[5*((kp1*Ny+jm1)*Nx+i)+ll]-Qij[5*((km1*Ny+jp1)*Nx+i)+ll])*dy_1*dz_1;
-            
-              for(int ll=0; ll<=4;ll++) ddQ[25+ll]= (Qij[5*((kp1*Ny+j)*Nx+i)+ll]-2.0*QN[ll]+Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1*dz_1;
-            
-              k_i[5*(Nx*(Ny*k+j)+i)+0]=bulk_energy.functional_derivative_00(QN,dQ,ddQ,v); 
-              k_i[5*(Nx*(Ny*k+j)+i)+1]=bulk_energy.functional_derivative_01(QN,dQ,ddQ,v); 
-              k_i[5*(Nx*(Ny*k+j)+i)+2]=bulk_energy.functional_derivative_02(QN,dQ,ddQ,v); 
-              k_i[5*(Nx*(Ny*k+j)+i)+3]=bulk_energy.functional_derivative_11(QN,dQ,ddQ,v); 
-              k_i[5*(Nx*(Ny*k+j)+i)+4]=bulk_energy.functional_derivative_12(QN,dQ,ddQ,v);
-                    
-            }
-        }
+      //Central differences in the (periodic) plane, one-sided downwards in z.
+      nm[0]=(k*Ny+j)*Nx+(i+Nx-1)%Nx;  np[0]=(k*Ny+j)*Nx+(i+1)%Nx;
+      nm[1]=(k*Ny+(j+Ny-1)%Ny)*Nx+i;  np[1]=(k*Ny+(j+1)%Ny)*Nx+i;
+      nm[2]=s-Nx*Ny;                   np[2]=s;
     }
-
-  k=Nz-1;
-#pragma omp for schedule(dynamic,1) collapse(2)  
-  for( int j= 0; j< Ny; j++)
-    {
-      for( int i= 0; i< Nx; i++)
-        {
-          double dQ[15];
-          double ddQ[30];
-          double QN[5];
-          double v[3];
-      
-          int ip1= (i+1)%Nx;
-          int jp1= (j+1)%Ny;
-//~           int kp1= k;
-          int im1= (i+Nx-1)%Nx;
-          int jm1= (j+Ny-1)%Ny;
-          int km1= (k-1);
-          v[0]=0.0;
-          v[1]=0.0;
-          v[2]=1.0;
-            
-          for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*(Nx*(Ny*k+j)+i)+ll];
-      
-          //Calcule first derivatives of Qij:
-          for(int ll=0; ll<=4;ll++) dQ[ll]=0.5*(Qij[5*((k*Ny+j)*Nx+ip1)+ll]-Qij[5*((k*Ny+j)*Nx+im1)+ll])*dx_1;
-            
-          for(int ll=0; ll<=4;ll++) dQ[5+ll]=0.5*(Qij[5*((k*Ny+jp1)*Nx+i)+ll]-Qij[5*((k*Ny+jm1)*Nx+i)+ll])*dy_1;
-            
-          for(int ll=0; ll<=4;ll++) dQ[10+ll]=(Qij[5*((k*Ny+j)*Nx+i)+ll]-Qij[5*((km1*Ny+j)*Nx+i)+ll])*dz_1;
-            
-          k_i[5*(Nx*(Ny*k+j)+i)+0]= bc_conditions[1]->functional_derivative_00(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+1]= bc_conditions[1]->functional_derivative_01(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+2]= bc_conditions[1]->functional_derivative_02(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+3]= bc_conditions[1]->functional_derivative_11(QN,dQ,ddQ,v);
-          k_i[5*(Nx*(Ny*k+j)+i)+4]= bc_conditions[1]->functional_derivative_12(QN,dQ,ddQ,v);
-		 
-        }
-    }
-	
 }
 
     

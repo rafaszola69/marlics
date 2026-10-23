@@ -22,7 +22,15 @@ ENERGY::ENERGY(const struct Simulation_Parameters * lc) :
     elecfieldx(lc->elecfieldx),
     elecfieldy(lc->elecfieldy),
     elecfieldz(lc->elecfieldz)
-{ }
+{
+  bulk_params.sigma=sigma; bulk_params.a=a; bulk_params.bb=bb; bulk_params.cc=cc;
+  bulk_params.L1=L1; bulk_params.L2=L2; bulk_params.L3=L3; bulk_params.Lq=Lq; bulk_params.Ls=Ls;
+  bulk_params.Lq_tilde=Lq_tilde;
+  bulk_params.Lambda=Lambda; bulk_params.Lambda_s=Lambda_s;
+  bulk_params.S_eq=S_eq;
+  bulk_params.deltaepslon=deltaepslon;
+  bulk_params.elecfieldx=elecfieldx; bulk_params.elecfieldy=elecfieldy; bulk_params.elecfieldz=elecfieldz;
+}
 
 
 //  void  assert_parameter_is_set(bool parameter, std::string parameter_name, bool has_standard_value =false);

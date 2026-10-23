@@ -1,11 +1,15 @@
 #ifndef ENERGY__
 #define ENERGY__
 
+#include "physics.h"
+
 class ENERGY
 {
   public:
 
   ENERGY(const struct Simulation_Parameters * lc);
+
+  const BulkParams & bulk() const { return bulk_params; }
   
   virtual  double functional_derivative_00(const double  QN[5],const double  dQ[15],const double  ddQ[30], const double v[3]) const =0;
   virtual  double functional_derivative_01(const double  QN[5],const double  dQ[15],const double  ddQ[30], const double v[3]) const =0;
@@ -35,6 +39,9 @@ class ENERGY
   const double elecfieldx;
   const double elecfieldy;
   const double elecfieldz;
+
+  //Same parameters as a plain struct, for the functions shared with the GPU (physics_*.h).
+  BulkParams bulk_params;
 
   //void  assert_parameter_is_set(bool parameter, class std::string parameter_name, bool has_standard_value =false);
   

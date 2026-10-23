@@ -7,7 +7,11 @@
 BOUNDARY::BOUNDARY(const  Simulation_Parameters *  sim_par, int boundary_number): ENERGY(sim_par),
   Lambda_s(1/sim_par->mu_1_s),
   boundary_id(boundary_number)
-  { };
+  {
+    bc_params.kind=BC_STRONG;
+    bc_params.Wo1=0;
+    for(int ll=0; ll<=4; ll++) bc_params.Q0[ll]=0;
+  };
 
 /*Warn about the use of a standart value in the absence of a parameter value.
  Print a error menssage if the standart value doesn't exist.*/

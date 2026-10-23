@@ -32,51 +32,71 @@ GEOMETRY::GEOMETRY(const struct Simulation_Parameters * lc) :
 
 };
 
-//Bulk energy density at site s, averaged over the 8 octants of one-sided differences.
-//Its exact gradient is the compact stencil used by fill_ki (3-point second derivatives and
-//4-corner mixed derivatives), so the time integrators decrease it, unlike a central-difference energy.
-double GEOMETRY::bulk_energy_octant(const double * Qij, int s, int xm, int xp, int ym, int yp, int zm, int zp, const double v[3]) const
-{
-  const int nx[2]={xm,xp}, ny[2]={ym,yp}, nz[2]={zm,zp};
-  const double sg[2]={-1.,1.};
-  double QN[5], dQ[15], f=0;
-
-  for(int ll=0; ll<=4;ll++) QN[ll]=Qij[5*s+ll];
-  for(int a=0; a<2; a++)
-    for(int b=0; b<2; b++)
-      for(int c=0; c<2; c++)
-        {
-          for(int ll=0; ll<=4;ll++)
-            {
-              dQ[ll]   =sg[a]*(Qij[5*nx[a]+ll]-QN[ll])*dx_1;
-              dQ[5+ll] =sg[b]*(Qij[5*ny[b]+ll]-QN[ll])*dy_1;
-              dQ[10+ll]=sg[c]*(Qij[5*nz[c]+ll]-QN[ll])*dz_1;
-            }
-          f+=bulk_energy.energy_calculation(QN,dQ,v);
-        }
-  return 0.125*f;
-}
-
-int GEOMETRY::neighbor(int i, int j, int k, int axis, int dir) const
-{
-  int c[3]={i,j,k};
-  const int n[3]={Nx,Ny,Nz};
-  const int s=(k*Ny+j)*Nx+i;
-
-  c[axis]+=dir;
-  if(c[axis]<0 || c[axis]>=n[axis])
-    {
-      if(!is_periodic(axis)) return s;
-      c[axis]=(c[axis]+n[axis])%n[axis];
-    }
-  const int t=(c[2]*Ny+c[1])*Nx+c[0];
-  return point_type[t]==0 ? s : t;
-}
-
 int GEOMETRY::surface_site(int i, int j, int k, double v[3], double & area) const
 {
   std::cout << "The " << geometry_name << " geometry does not define its surface sites.\nAborting the program.\n";
   exit(1);
+}
+
+//Default: no derivatives at surface sites (used only by geometries that override fill_ki).
+void GEOMETRY::surface_stencil(int i, int j, int k, int nm[3], int np[3]) const
+{
+  const int s=(k*Ny+j)*Nx+i;
+  for(int a=0; a<3; a++) nm[a]=np[a]=s;
+}
+
+void GEOMETRY::build_lattice( void )
+{
+  surface.clear();
+  for(int s=0; s<Nx*Ny*Nz; s++)
+    {
+      if(point_type[s]<2) continue;
+      const int i=s%Nx, j=(s/Nx)%Ny, k=s/(Nx*Ny);
+      SurfaceSite S;
+      S.site=s;
+      S.bc=surface_site(i,j,k,S.v,S.area);
+      surface_stencil(i,j,k,S.nm,S.np);
+      for(int a=0; a<3; a++)
+        S.w[a]= (S.nm[a]!=s && S.np[a]!=s) ? 0.5 : 1.0;
+      surface.push_back(S);
+    }
+
+  boundary_params.clear();
+  for(BOUNDARY * bc : bc_conditions) boundary_params.push_back(bc->params());
+}
+
+LatticeView GEOMETRY::view( void ) const
+{
+  LatticeView L;
+  L.Nx=Nx; L.Ny=Ny; L.Nz=Nz;
+  for(int a=0; a<3; a++) L.periodic[a]=is_periodic(a);
+  L.d_1[0]=dx_1; L.d_1[1]=dy_1; L.d_1[2]=dz_1;
+  L.dV=dV;
+  L.point_type=point_type;
+  L.n_surface=surface.size();
+  L.surface=surface.data();
+  L.bulk=bulk_energy.bulk();
+  L.bc=boundary_params.data();
+  return L;
+}
+
+//Called inside a parallel region. Dynamic schedule: bulk sites, the expensive ones, are unevenly
+//spread (a droplet fills only the middle of the box). Bulk sites first (surface and outside sites are zeroed), then
+//the surface sites; the implicit barrier between the two loops keeps them from overlapping.
+void GEOMETRY::fill_ki(double * k_i, const double * Qij) const
+{
+  const LatticeView L=view();
+
+  #pragma omp for schedule(dynamic,Nx)
+  for(int s=0; s<Nx*Ny*Nz; s++)
+    {
+      if(point_type[s]==1) bulk_site_force(L,Qij,s,&k_i[5*s]);
+      else for(int ll=0; ll<=4; ll++) k_i[5*s+ll]=0.;
+    }
+
+  #pragma omp for schedule(static)
+  for(int n=0; n<L.n_surface; n++)
+    surface_site_force(L,Qij,L.surface[n],&k_i[5*L.surface[n].site]);
 }
 
 //Every liquid crystal site carries bulk energy over its volume dV; surface sites also carry
@@ -84,32 +104,20 @@ int GEOMETRY::surface_site(int i, int j, int k, double v[3], double & area) cons
 //energy whose gradient fill_ki uses, including the links to surface sites.
 void GEOMETRY::Energy_calc(double * k_i, const double * Qij) const
 {
+  const LatticeView L=view();
+
   #pragma omp for schedule(static)
   for(int s=0; s<Nx*Ny*Nz; s++)
     {
-      const int i=s%Nx, j=(s/Nx)%Ny, k=s/(Nx*Ny);
-      double v[3]={0.,0.,0.};
-      const double dQ[15]={0.};
-
-      k_i[2*s+0]=0.;
+      k_i[2*s+0]= point_type[s]==0 ? 0. : dV*bulk_site_energy(L,Qij,s);
       k_i[2*s+1]=0.;
-      if(point_type[s]==0) continue;
-
-      k_i[2*s+0]=dV*bulk_energy_octant(Qij,s,
-                                       neighbor(i,j,k,0,-1),neighbor(i,j,k,0,1),
-                                       neighbor(i,j,k,1,-1),neighbor(i,j,k,1,1),
-                                       neighbor(i,j,k,2,-1),neighbor(i,j,k,2,1),v);
-      if(point_type[s]>=2)
-        {
-          double area;
-          const int bc=surface_site(i,j,k,v,area);
-          k_i[2*s+1]=area*bc_conditions[bc]->energy_calculation(&Qij[5*s],dQ,v);
-        }
     }
+
+  #pragma omp for schedule(static)
+  for(int n=0; n<L.n_surface; n++)
+    k_i[2*L.surface[n].site+1]=surface_site_energy(L,Qij,L.surface[n]);
 }
 
-
-  
 void GEOMETRY::boundary_init(struct Simulation_Parameters * sim_param)
 {
     std::cout <<"\nInitiating boundary conditions:\n\n";
@@ -190,5 +198,6 @@ void GEOMETRY::boundary_init(struct Simulation_Parameters * sim_param)
             exit(0);
         } 
     }  
+    build_lattice();
 };
 

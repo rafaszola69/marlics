@@ -24,9 +24,7 @@ class Geometry_Hybrid_Sphere : public GEOMETRY
 
   
  public:
-
-  
-  virtual void fill_ki(double * k_i, const double * Qij) const ;
+  virtual void surface_stencil(int, int, int, int [3], int [3]) const ;
   virtual int surface_site(int, int, int, double [3], double &) const ;
   virtual int backwardPTP(double *, const double * ) const ;
      
