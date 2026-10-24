@@ -123,6 +123,13 @@ MARLICS_HD inline void bulk_site_force(const LatticeView& L, const double * Qij,
   out[2]=ldg_functional_derivative_02<Real>(L.bulk,q.x,d.x,dd.x,n.x);
   out[3]=ldg_functional_derivative_11<Real>(L.bulk,q.x,d.x,dd.x,n.x);
   out[4]=ldg_functional_derivative_12<Real>(L.bulk,q.x,d.x,dd.x,n.x);
+
+  //Plane confinement f=W*Q_zz=-W*(Q_00+Q_11).
+  if(L.bulk.plane_W!=0)
+    {
+      out[0]+=L.bulk.Lambda*L.bulk.plane_W/3.;
+      out[3]+=L.bulk.Lambda*L.bulk.plane_W/3.;
+    }
 }
 
 //Surface site: first derivatives from its stencil, then the natural boundary condition.
@@ -184,7 +191,7 @@ MARLICS_HD inline double bulk_site_energy(const LatticeView& L, const double * Q
             }
           f+=ldg_energy_calculation(L.bulk,QN,dQ,v);
         }
-  return 0.125*f;
+  return 0.125*f-L.bulk.plane_W*(QN[0]+QN[3]);
 }
 
 //Anchoring energy of a surface site (10^-21 J): density times the area the site represents.

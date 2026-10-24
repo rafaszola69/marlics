@@ -35,6 +35,10 @@ struct Simulation_Parameters
 
   
   char geometry[200];
+  //dimension 2: a single layer (Nz=1) with no variation along z; Q keeps its 5 components (3D physics).
+  int dimension=3;
+  //Energy W*Q_zz (10^6 J/m^3) keeping the director in the xy plane for W>0, like a field along z with delta_epsilon<0.
+  double plane_confinement=0;
   int Nz2=0;
   double wTheta=0;
   parameter_status geometry_flag=parameter_status::unset;
@@ -105,6 +109,8 @@ struct Simulation_Parameters
   double theta_i;       /* degrees */
   double phi_i;         /* degrees */ 
   double p0_i;         /* nm */ 
+  //"defects" initial condition: in-plane point defects at (x,y) (lattice units) with charges k.
+  std::vector<double> defect_x, defect_y, defect_k;
   double R0_i;         /* nm */ 
   int    m_i;         /* nm */ 
   parameter_status ic_flag[8]={parameter_status::unset,     // [0] initinal conditions flag

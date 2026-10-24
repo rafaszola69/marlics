@@ -22,6 +22,7 @@ landau_de_gennes::landau_de_gennes(const struct Simulation_Parameters * lc) : EN
   std::cout << "b=" << bb << " \n";
   std::cout << "c=" << cc << " \n";
   std::cout << "T=" << lc->T << " \n\n";
+  if(lc->plane_confinement!=0) std::cout << "plane_confinement=" << lc->plane_confinement << " \n\n";
 
   std::cout << "Lambda=" << 1/Lambda << " \n";
   std::cout << "Lambda_s=" << 1/Lambda_s << " \n\n";

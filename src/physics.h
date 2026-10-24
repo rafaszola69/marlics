@@ -25,6 +25,7 @@ struct BulkParams
   double Lambda, Lambda_s;
   double S_eq;
   double deltaepslon, elecfieldx, elecfieldy, elecfieldz;
+  double plane_W;   //plane confinement: energy density plane_W*Q_zz
 };
 
 enum BoundaryKind { BC_STRONG=0, BC_RP=1, BC_FG=2, BC_HOMEOTROPIC=3 };

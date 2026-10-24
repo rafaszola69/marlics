@@ -11,6 +11,7 @@
 #include "geometry_hemisphere.h"
 #include "geometry_wedge.h"
 #include "geometry_wedge2.h"
+#include "geometry_2d.h"
 #include "boundary.h"
 #include "integrator.h"
 #include "exec_cpu.h"
@@ -189,6 +190,22 @@ void driver::setup_LC(void)
     }
 
     
+  //Two dimensions: one layer, no variation along z. dz only sets the thickness the energies refer to.
+  if(sim_param.dimension==2)
+    {
+      if(sim_param.grid_flag[2]==parameter_status::set && sim_param.Nz!=1)
+        std::cout << "dimension 2: using Nz=1 instead of Nz=" << sim_param.Nz << ".\n";
+      sim_param.Nz=1;
+      sim_param.grid_flag[2]=parameter_status::set;
+      if(sim_param.grid_spacing_flag[2]==parameter_status::unset)
+        {
+          sim_param.dz=sim_param.dx;
+          sim_param.grid_spacing_flag[2]=parameter_status::set;
+          std::cout << "dimension 2: dz not set, using dz=dx=" << sim_param.dz << " (energies are per thickness dz).\n";
+        }
+      std::cout << "Two-dimensional simulation (Nz=1, no variation along z, 3D Q tensor).\n";
+    }
+
   //Checking and Setting up the grid:
   if(sim_param.grid_spacing_flag[0]==parameter_status::unset ||
      sim_param.grid_spacing_flag[1]==parameter_status::unset ||
@@ -382,9 +399,31 @@ void driver::setup_Simulation(void)
     {
     case parameter_status::set:
       
+      if ( sim_param.dimension==2 &&
+           ( strcasecmp(sim_param.geometry,"slab")==0 || strcasecmp(sim_param.geometry,"sphere")==0 ||
+             strcasecmp(sim_param.geometry,"hybrid_sphere")==0 || strcasecmp(sim_param.geometry,"hemisphere")==0 ||
+             strcasecmp(sim_param.geometry,"wedge")==0 || strcasecmp(sim_param.geometry,"wedge2")==0 ) )
+        {
+          std::cout << "The " << sim_param.geometry << " geometry needs three dimensions.\n"
+                    << "In two dimensions use disk, channel, box, bulk or custom.\nAborting the program.\n\n";
+          exit(2);
+        }
+
       if ( strcasecmp(sim_param.geometry,"slab") == 0 )
         {
           LcS_Geometry= new slab( & sim_param);
+        }
+      else if ( strcasecmp(sim_param.geometry,"disk") == 0 || strcasecmp(sim_param.geometry,"cylinder") == 0 )
+        {
+          LcS_Geometry= new Geometry_Disk( & sim_param);
+        }
+      else if ( strcasecmp(sim_param.geometry,"channel") == 0 )
+        {
+          LcS_Geometry= new Geometry_Channel( & sim_param);
+        }
+      else if ( strcasecmp(sim_param.geometry,"box") == 0 )
+        {
+          LcS_Geometry= new Geometry_Box( & sim_param);
         }
       else if ( strcasecmp(sim_param.geometry,"bulk") == 0 )
         {
@@ -636,6 +675,37 @@ int driver::parse_input_file(char input_name[])
           garbage=fgets(garbage,400,input_file);
 
           
+        }
+    else if ( strcasecmp(parser,"dimension") == 0 )
+        {
+          error_handler=fscanf(input_file,"%i",&sim_param.dimension);
+          error_check(error_handler,parser);
+          if( sim_param.dimension!=2 && sim_param.dimension!=3 )
+            {
+              std::cout << "dimension must be 2 or 3 (found " << sim_param.dimension << ").\nAborting the program.\n";
+              exit(1);
+            }
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"plane_confinement") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.plane_confinement);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"defect") == 0 )
+        {
+          double x, y, k;
+          error_handler=fscanf(input_file,"%lf %lf %lf",&x,&y,&k);
+          if(error_handler!=3)
+            {
+              std::cout << "defect needs three values: x y charge (lattice units).\nAborting the program.\n";
+              exit(1);
+            }
+          sim_param.defect_x.push_back(x);
+          sim_param.defect_y.push_back(y);
+          sim_param.defect_k.push_back(k);
+          garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"gpu_precision") == 0 )
         {

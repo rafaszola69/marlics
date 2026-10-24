@@ -16,6 +16,8 @@ void DSS_asatz( struct Simulation_Parameters * sim_param,double * Qij, const cla
 void RSS_asatz( struct Simulation_Parameters * sim_param,double * Qij, const class GEOMETRY * );
 void LoY_asatz( struct Simulation_Parameters * sim_param,double * Qij, const class GEOMETRY * ,int m_i);
 void homeotropic_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry );
+void defects_ic( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry );
+void cholesteric_2d_ic( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry );
 void read_check(int read_status, int line);
 
 #endif 

@@ -20,6 +20,16 @@ void apply_initial_conditions(struct Simulation_Parameters * sim_param,double * 
       case parameter_status::set:
       
         std::cout << "\nInitial Conditions: " << sim_param->initial_conditions << ".\n";
+        //The 3D ansatzes vary along z or need the droplet geometry.
+        if(sim_param->dimension==2 &&
+           strcasecmp(sim_param->initial_conditions,"random")!=0 && strcasecmp(sim_param->initial_conditions,"homogeneous")!=0 &&
+           strcasecmp(sim_param->initial_conditions,"read_from_file")!=0 && strcasecmp(sim_param->initial_conditions,"defects")!=0 &&
+           strcasecmp(sim_param->initial_conditions,"cholesteric_2d")!=0)
+          {
+            std::cout << "The initial condition " << sim_param->initial_conditions << " is not available in two dimensions.\n"
+                      << "Use random, homogeneous, read_from_file, defects or cholesteric_2d.\nAborting the program.\n";
+            exit(2);
+          }
          if(strcasecmp(sim_param->initial_conditions,"read_from_file") == 0 )          
           {
       
@@ -82,6 +92,14 @@ void apply_initial_conditions(struct Simulation_Parameters * sim_param,double * 
         else if(strcasecmp(sim_param->initial_conditions,"homeo_ansatz")*strcasecmp(sim_param->initial_conditions,"homeotropic_ansatz") == 0 )
           {
             homeotropic_asatz( sim_param, Qij, geometry );
+          }
+        else if(strcasecmp(sim_param->initial_conditions,"defects") == 0 )
+          {
+            defects_ic( sim_param, Qij, geometry );
+          }
+        else if(strcasecmp(sim_param->initial_conditions,"cholesteric_2d") == 0 )
+          {
+            cholesteric_2d_ic( sim_param, Qij, geometry );
           }
         else if(strcasecmp(sim_param->initial_conditions,"Lyre") == 0 )
           {
@@ -988,4 +1006,90 @@ void LoY_asatz( struct Simulation_Parameters * sim_param,double * Qij, const GEO
             }                      
         }
     }
+}
+
+//Sets Q=(S_eq/2)(3nn-I) at the liquid crystal sites and the default (n=z, S=1) outside.
+static void set_director(double * q, const double n[3], double S)
+{
+  q[0]=0.5*S*(3.0*n[0]*n[0]-1.0);
+  q[1]=0.5*S*(3.0*n[0]*n[1]);
+  q[2]=0.5*S*(3.0*n[0]*n[2]);
+  q[3]=0.5*S*(3.0*n[1]*n[1]-1.0);
+  q[4]=0.5*S*(3.0*n[1]*n[2]);
+}
+
+//In-plane point defects: the director angle in the xy plane is phi_i plus k*atan2(y-y0,x-x0) for each
+//defect (x0,y0,k), given in lattice units by the "defect x y k" lines of the input file.
+void defects_ic( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry )
+{
+  const int Nx=geometry->Nx, Ny=geometry->Ny, Nz=geometry->Nz;
+  const int * point_type=geometry->point_type;
+  const double phi_i= sim_param->ic_flag[3]==parameter_status::set ? sim_param->phi_i*M_PI/180 : 0;
+  const size_t n_defects=sim_param->defect_k.size();
+
+  if(n_defects==0)
+    {
+      std::cout << "The initial condition \"defects\" needs at least one line \"defect x y charge\" (lattice units).\nAborting the program.\n";
+      exit(1);
+    }
+  std::cout << "Initiating " << n_defects << " in-plane point defects, phi_i=" << phi_i << ":\n";
+  double total=0;
+  for(size_t d=0; d<n_defects; d++)
+    {
+      std::cout << "  (" << sim_param->defect_x[d] << ", " << sim_param->defect_y[d] << ") charge " << sim_param->defect_k[d] << "\n";
+      total+=sim_param->defect_k[d];
+    }
+  std::cout << "  total charge " << total << "\n\n";
+
+  for(int k=0; k<Nz; k++)
+    for(int j=0; j<Ny; j++)
+      for(int i=0; i<Nx; i++)
+        {
+          const int s=(k*Ny+j)*Nx+i;
+          double n[3]={0.,0.,1.};
+          if(point_type[s]!=0)
+            {
+              double angle=phi_i;
+              for(size_t d=0; d<n_defects; d++)
+                angle+=sim_param->defect_k[d]*atan2(j-sim_param->defect_y[d], i-sim_param->defect_x[d]);
+              n[0]=cos(angle); n[1]=sin(angle); n[2]=0;
+            }
+          set_director(&Qij[5*s],n, point_type[s]!=0 ? sim_param->S_eq : 1.0);
+        }
+}
+
+//Cholesteric with its helix axis in the xy plane, at the angle phi_i from x, and pitch p0_i:
+//n=cos(q s) e + sin(q s) z, with s the position along the axis and e=z x axis the in-plane
+//direction normal to it. The handedness follows the sign of q0.
+void cholesteric_2d_ic( struct Simulation_Parameters * sim_param,double * Qij, const GEOMETRY * geometry )
+{
+  const int Nx=geometry->Nx, Ny=geometry->Ny, Nz=geometry->Nz;
+  const int * point_type=geometry->point_type;
+
+  if(sim_param->ic_flag[5]==parameter_status::unset)
+    {
+      std::cout << "The initial condition \"cholesteric_2d\" needs the pitch \"p0_i\".\nAborting the program.\n";
+      exit(1);
+    }
+  const double phi_i= sim_param->ic_flag[3]==parameter_status::set ? sim_param->phi_i*M_PI/180 : 0;
+  const double handedness=(sim_param->q0<0) ? -1.0 : 1.0;
+  const double q=handedness*2*M_PI/sim_param->p0_i;
+  const double axis[2]={cos(phi_i), sin(phi_i)};
+  std::cout << "Initiating an in-plane cholesteric: p0_i=" << sim_param->p0_i << ", helix axis at phi_i=" << phi_i << "\n\n";
+
+  for(int k=0; k<Nz; k++)
+    for(int j=0; j<Ny; j++)
+      for(int i=0; i<Nx; i++)
+        {
+          const int s=(k*Ny+j)*Nx+i;
+          double n[3]={0.,0.,1.};
+          if(point_type[s]!=0)
+            {
+              const double pos=(i*sim_param->dx)*axis[0]+(j*sim_param->dy)*axis[1];
+              n[0]=-axis[1]*cos(q*pos);
+              n[1]= axis[0]*cos(q*pos);
+              n[2]= sin(q*pos);
+            }
+          set_director(&Qij[5*s],n, point_type[s]!=0 ? sim_param->S_eq : 1.0);
+        }
 }

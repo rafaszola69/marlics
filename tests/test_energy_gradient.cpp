@@ -1,6 +1,7 @@
 // fill_ki (the right-hand side used by every integrator, FIRE included) must be the gradient of
 // the discrete energy reported by Energy_calc: fill_ki = -Lambda * P[dE/dQ] / dV, where P is the
 // projection onto symmetric traceless tensors written in the 5 independent components.
+// Also the plane confinement term W*Q_zz.
 // Checked on a smooth periodic field in the bulk geometry, one elastic term at a time.
 // The quadratic terms (L1, L2, Ls, Lq, thermotropic) are exact gradients. The cubic L3 term is
 // only consistent: its mismatch must decrease at second order with the grid resolution.
@@ -12,7 +13,7 @@
 #include <cstdlib>
 #include <vector>
 
-struct Case { const char* name; double L1, L2, L3, Ls, Lq, q0, a, B, C; bool exact; };
+struct Case { const char* name; double L1, L2, L3, Ls, Lq, q0, a, B, C; bool exact; double W; };
 
 static double total_energy(const GEOMETRY& g, std::vector<double>& e, const double* Q)
 {
@@ -28,6 +29,7 @@ static double run(const Case& c, int N)
   p.Nx=p.Ny=p.Nz=N; p.dx=p.dy=p.dz=5.0;
   p.L1=c.L1; p.L2=c.L2; p.L3=c.L3; p.Ls=c.Ls; p.Lq=c.Lq; p.q0=c.q0;
   p.a=c.a; p.B=c.B; p.C=c.C; p.T=-1;
+  p.plane_confinement=c.W;
   p.mu_1=0.3; p.mu_1_s=3.0; p.S_eq=0.5;
   Geometry_Bulk g(&p);
 
@@ -75,6 +77,7 @@ int main()
     {"thermotropic",0,0,0,0,0,0,      0.086,-2.12,1.74, true },
     {"Lq (chiral)", 0,0,0,0,6,0.03,   0,0,0,            true },
     {"L3",          0,0,3,0,0,0,      0,0,0,            false},
+    {"plane confin.",0,0,0,0,0,0,     0,0,0,            true, 0.05},
   };
   int failed=0;
   fprintf(stderr,"test_energy_gradient: fill_ki vs -Lambda*dE/dQ/dV (relative difference)\n");

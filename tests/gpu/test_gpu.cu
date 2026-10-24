@@ -103,7 +103,8 @@ int main()
   fprintf(stderr,"test_gpu: GPU against CPU\n");
   const char * inputs[]={"tests/gpu/sphere_homeotropic.txt","tests/gpu/sphere_rp.txt","tests/gpu/sphere_fg.txt",
                          "tests/gpu/sphere_strong.txt","tests/gpu/hybrid_sphere.txt","tests/gpu/hemisphere.txt",
-                         "tests/gpu/slab.txt","tests/gpu/bulk.txt","tests/gpu/custom.txt"};
+                         "tests/gpu/slab.txt","tests/gpu/bulk.txt","tests/gpu/custom.txt",
+                         "tests/inputs/2d_disk.txt","tests/inputs/2d_channel.txt","tests/inputs/2d_box.txt"};
   for(const char * in : inputs) compare_forces(in);
 
   compare_relaxation("tests/inputs/droplet.txt","FIRE");
