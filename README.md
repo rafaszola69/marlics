@@ -46,6 +46,15 @@ src/ -> folder containing MarLiCs the source code;
 
 auxiliar/ -> some auxiliar files to aid the user;
 
+	auxiliar/defects/track_defects.py -> point defects of two-dimensional runs: finds them in every
+	snapshot from the in-plane part of Q (also when the director leaves the plane), links them into
+	trajectories and reports annihilations, creations and defects crossing the boundary. Times come
+	from the Marlics output ("Snapshot k: t" lines). Example:
+	    python3 auxiliar/defects/track_defects.py run_dir --log run.log --plot tracks.png
+	The snapshots must be close enough that a defect moves less than --max-jump (5 sites) between
+	them; --periodic x,y for periodic domains; --start 1 skips a random initial state.
+	Test: python3 auxiliar/defects/test_track_defects.py (synthetic fields with known defects);
+
 	auxiliar/renderize/ -> contain routines to renderize the directors and the isosurface of the parameter order S;
 
 	auxiliar/boundaries/ -> contain 2 examples off c++ files that can be used to produce boundary files;
