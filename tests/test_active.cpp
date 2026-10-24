@@ -4,7 +4,9 @@
 //    than in the passive case for zeta<0 (linear theory: the bend response is ~ (lambda+1) > 0);
 //  - for a tumbling material (xi < 3S/(2+S)) contractility destabilizes splay (~ (lambda-1) < 0);
 //  - a +1/2 defect self-propels along its axis, towards its head for zeta>0, and a -1/2 does
-//    not: velocity at the core from the active stress in a window around each defect.
+//    not: velocity at the core from the active stress in a window around each defect;
+//  - in 3D (no plane confinement) an out-of-plane bend perturbation, n=(cos,0,sin), grows for
+//    zeta>0 and the flow has a z component.
 #include "driver.h"
 #include "geometry.h"
 #include "integrator.h"
@@ -160,11 +162,57 @@ static void self_propulsion()
   delete d;
 }
 
+static void bend_3d()
+{
+  double r[2];
+  const double zeta[2]={0.05,0.};
+  for(int c=0; c<2; c++)
+    {
+      driver * d=setup([&](Simulation_Parameters& p){
+          p.dimension=3; p.Nx=32; p.Ny=p.Nz=8; p.grid_flag[2]=parameter_status::set; p.dz=p.dx;
+          p.grid_spacing_flag[2]=parameter_status::set; p.plane_confinement=0; p.activity=zeta[c];
+          strcpy(p.initial_conditions,"homogeneous"); p.theta_i=90; p.phi_i=0;
+          p.ic_flag[2]=p.ic_flag[3]=parameter_status::set; });
+      const int N=32, M=8;
+      const double S=d->sim_param.S_eq;
+      auto amplitude=[&](){
+        double a=0;
+        for(int k=0;k<M;k++) for(int j=0;j<M;j++) for(int i=0;i<N;i++)
+          {
+            const double * q=&d->Qij[5*((k*M+j)*N+i)];
+            a+=0.5*atan2(2*q[2],q[0]-(-q[0]-q[3]))*sin(2*M_PI*i/N);   //angle in the xz plane
+          }
+        return a; };
+      for(int k=0;k<M;k++) for(int j=0;j<M;j++) for(int i=0;i<N;i++)
+        {
+          const double phi=0.01*sin(2*M_PI*i/N), n[3]={cos(phi),0,sin(phi)};
+          double * q=&d->Qij[5*((k*M+j)*N+i)];
+          q[0]=0.5*S*(3*n[0]*n[0]-1); q[1]=0; q[2]=1.5*S*n[0]*n[2]; q[3]=-0.5*S; q[4]=0;
+        }
+      const double a0=amplitude();
+      if(c==0)
+        {
+          const std::vector<double> u=velocity(d);
+          double uz=0, um=0;
+          for(size_t s=0; s<u.size()/3; s++) { uz=fmax(uz,fabs(u[3*s+2])); um=fmax(um,fabs(u[3*s])+fabs(u[3*s+1])); }
+          check("3D bend: the flow is along z (max |u_z| / max |u_x,u_y|)", uz>10*um, "%.2g", uz/um);
+        }
+      Integrator * it=make_integrator<CpuExec>(d->LcS_Geometry,&d->sim_param);
+      double t=0;
+      it->evolve(d->Qij,&t,15.);
+      r[c]=amplitude()/a0;
+      delete d;
+    }
+  check("3D out-of-plane bend, extensile: amplitude ratio after t=15", r[0]>1, "%.3g", r[0]);
+  check("3D out-of-plane bend, passive: decays", r[1]<1, "%.3g", r[1]);
+}
+
 int main()
 {
   fprintf(stderr,"test_active: activity\n");
   linearity();
   instabilities();
   self_propulsion();
+  bend_3d();
   return failed ? 1 : 0;
 }
