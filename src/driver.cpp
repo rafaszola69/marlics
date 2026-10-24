@@ -481,6 +481,19 @@ void driver::setup_Simulation(void)
       
     case parameter_status::set:
 
+      if ( strcasecmp(sim_param.flow,"stokes") == 0 )
+        {
+          if( sim_param.viscosity<=0 )
+            {
+              std::cout << "flow stokes needs the viscosity (Pa s).\nAborting the program.\n";
+              exit(1);
+            }
+          if( strncasecmp(sim_param.integrator_type,"FIRE",4) == 0 )
+            {
+              std::cout << "The flow changes the dynamics, not the equilibrium states: use a time integrator (DP5, RK2, Euler), not FIRE.\nAborting the program.\n";
+              exit(1);
+            }
+        }
       if ( strcasecmp(sim_param.device,"gpu") == 0 )
         {
           std::cout << "Running on the GPU.\n";
@@ -675,6 +688,29 @@ int driver::parse_input_file(char input_name[])
           garbage=fgets(garbage,400,input_file);
 
           
+        }
+    else if ( strcasecmp(parser,"flow") == 0 )
+        {
+          error_handler=fscanf(input_file,"%19s",sim_param.flow);
+          error_check(error_handler,parser);
+          if( strcasecmp(sim_param.flow,"none")!=0 && strcasecmp(sim_param.flow,"stokes")!=0 )
+            {
+              std::cout << "flow must be none or stokes (found " << sim_param.flow << ").\nAborting the program.\n";
+              exit(1);
+            }
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"viscosity") == 0 || strcasecmp(parser,"eta") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.viscosity);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"xi") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.xi);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"dimension") == 0 )
         {

@@ -53,7 +53,7 @@ GPU_OBJS  := $(patsubst src/%.cpp,build_gpu/%.o,$(filter-out src/gpu_stub.cpp,${
 
 gpu: marlics_gpu
 marlics_gpu: ${GPU_OBJS}
-	@${COMPILER} ${GPU_FLAGS} ${GPU_OBJS} ${LIB} -lcudart -o marlics_gpu
+	@${COMPILER} ${GPU_FLAGS} ${GPU_OBJS} ${LIB} -lcufft -lcudart -o marlics_gpu
 build_gpu/%.o: src/%.cpp ${HEADER} | build_gpu
 	@${COMPILER} ${GPU_FLAGS} -c $< -o $@
 build_gpu/gpu_cuda.o: src/gpu/gpu.cu $(wildcard src/gpu/*.h) ${HEADER} | build_gpu
@@ -66,7 +66,7 @@ test-gpu: build_gpu/test_gpu
 	@./build_gpu/test_gpu 2>&1 >build_gpu/test_gpu.log && echo "GPU test passed." || (echo "GPU TEST FAILED."; exit 1)
 GPU_LIB_OBJS := $(filter-out build_gpu/main.o build_gpu/gpu_cuda.o,${GPU_OBJS})
 build_gpu/test_gpu: build_gpu/test_gpu_cuda.o ${GPU_LIB_OBJS}
-	@${COMPILER} ${GPU_FLAGS} build_gpu/test_gpu_cuda.o ${GPU_LIB_OBJS} ${LIB} -lcudart -o $@
+	@${COMPILER} ${GPU_FLAGS} build_gpu/test_gpu_cuda.o ${GPU_LIB_OBJS} ${LIB} -lcufft -lcudart -o $@
 build_gpu/test_gpu_cuda.o: tests/gpu/test_gpu.cu src/gpu/gpu.cu $(wildcard src/gpu/*.h) ${HEADER} | build_gpu
 	@${NVCC} ${NVFLAGS} -Isrc/gpu -c $< -o $@
 

@@ -1,7 +1,8 @@
 // GPU against CPU (make test-gpu):
 //  - fill_ki and Energy_calc per site, on the initial condition of several inputs covering all
 //    geometries the GPU supports, the four anchoring types, every elastic term and the field;
-//  - FIRE and DP5 relaxations: same final energy and state on both devices.
+//  - FIRE and DP5 relaxations: same final energy and state on both devices;
+//  - backflow (cuFFT against pocketfft): same fill_ki and DP5 dynamics.
 #include "gpu.cu"
 #include "exec_cpu.h"
 #include <cmath>
@@ -71,6 +72,27 @@ static void compare_forces(const char * input)
   delete d;
 }
 
+//fill_ki with backflow (flow stokes in the input): CPU (pocketfft) against GPU (cuFFT).
+static void compare_flow(const char * input)
+{
+  driver * d=setup(input);
+  GEOMETRY * g=d->LcS_Geometry;
+  const long N=(long)g->Nx*g->Ny*g->Nz;
+  std::vector<double> kc(5*N), kg(5*N);
+  CpuExec cpu(g,&d->sim_param);
+  cpu.fill_ki(kc.data(),d->Qij);
+  CudaExec exec(g,&d->sim_param);
+  double * Q=exec.attach(d->Qij);
+  double * k=exec.alloc(5*N);
+  exec.fill_ki(k,Q);
+  CUDA_CHECK(cudaMemcpy(kg.data(),k,5*N*sizeof(double),cudaMemcpyDeviceToHost));
+  exec.release(k);
+  char what[300];
+  sprintf(what,"%s fill_ki with backflow (max rel. diff)",input);
+  check(what,rel_diff(kc,kg),1e-10);
+  delete d;
+}
+
 //Runs the input's integrator to its tf on the CPU and on the GPU from the same initial condition.
 static void compare_relaxation(const char * input, const char * integrator)
 {
@@ -110,6 +132,9 @@ int main()
   compare_relaxation("tests/inputs/droplet.txt","FIRE");
   compare_relaxation("tests/inputs/slab.txt","FIRE");
   compare_relaxation("tests/inputs/slab.txt","DP5");
+
+  compare_flow("tests/inputs/flow_pair.txt");
+  compare_relaxation("tests/inputs/flow_pair.txt","DP5");
 
   fprintf(stderr, failed ? "SOME GPU CHECKS FAILED\n" : "All GPU checks passed\n");
   return failed ? 1 : 0;

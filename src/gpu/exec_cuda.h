@@ -108,6 +108,8 @@ namespace gpu
   inline int blocks(long n) { const long b=(n+threads-1)/threads; return b<65535 ? (int)b : 65535; }
 }
 
+#include "flow_cuda.h"
+
 class CudaExec
 {
  public:
@@ -146,11 +148,13 @@ class CudaExec
 
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop,0));
+    flow= (sim_param!=NULL && strcasecmp(sim_param->flow,"stokes")==0) ? new FlowCuda(L,sim_param) : NULL;
     std::cout << "GPU: " << prop.name << ", " << prop.totalGlobalMem/1048576 << " MiB, " << (mixed ? "mixed" : "double") << " precision.\n";
   }
 
   ~CudaExec()
   {
+    delete flow;
     cudaFree((void *)L.point_type);
     cudaFree((void *)L.surface);
     cudaFree((void *)L.bc);
@@ -218,6 +222,7 @@ class CudaExec
         gpu::bulk_forces<double><<<gpu::blocks(n_sites),gpu::threads>>>(L,Qij,k_i);
         if(L.n_surface>0) gpu::surface_forces<double><<<gpu::blocks(L.n_surface),gpu::threads>>>(L,Qij,k_i);
       }
+    if(flow) flow->add(k_i,Qij);
     CUDA_CHECK(cudaGetLastError());
   }
 
@@ -249,6 +254,7 @@ class CudaExec
 
   const long n_sites;
   const bool mixed;
+  FlowCuda * flow;
   LatticeView L;
   void * partial;
   double * Q_dev;

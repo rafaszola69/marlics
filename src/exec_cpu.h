@@ -9,16 +9,21 @@
 #include <omp.h>
 #include <cstdlib>
 #include <vector>
+#include <cstring>
 #include "driver.h"
 #include "physics.h"
 #include "geometry.h"
+#include "flow_cpu.h"
 
 class CpuExec
 {
  public:
 
-  CpuExec(GEOMETRY * g, const Simulation_Parameters * sim_param=NULL) : geometry(g), n_sites(g->Nx*g->Ny*g->Nz), energy_buffer(NULL) {}
-  ~CpuExec() { free(energy_buffer); }
+  CpuExec(GEOMETRY * g, const Simulation_Parameters * sim_param=NULL) : geometry(g), n_sites(g->Nx*g->Ny*g->Nz), energy_buffer(NULL), flow(NULL)
+  {
+    if(sim_param!=NULL && strcasecmp(sim_param->flow,"stokes")==0) flow=new FlowCpu(g,sim_param);
+  }
+  ~CpuExec() { free(energy_buffer); delete flow; }
 
   static const char * name() { return "CPU"; }
 
@@ -93,11 +98,15 @@ class CpuExec
     return r;
   }
 
+  //Relaxation (geometry) plus, with backflow, the flow terms.
   void fill_ki(double * k_i, const double * Qij) const
   {
     #pragma omp parallel
     geometry->fill_ki(k_i,Qij);
+    if(flow) flow->add(k_i,Qij);
   }
+
+  FlowCpu * flow;
 
   //Total energy (10^-21 J).
   double energy(const double * Qij)

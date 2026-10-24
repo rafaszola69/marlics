@@ -1,0 +1,36 @@
+# Periodic 2D box with a +1/2/-1/2 pair and backflow (used by test_flow)
+dimension 2
+geometry bulk
+integrator DP5
+Nx 40
+Ny 40
+dx 5.0
+dy 5.0
+a  0.086
+B -2.12
+C  1.74
+T  -1.0
+L1 6.0
+plane_confinement 0.05
+mu_1 0.3
+mu_1_s 3.0
+flow stokes
+viscosity 0.05
+xi 0.6
+atol 1e-6
+rtol 1e-6
+facmax 3.0
+facmin 0.4
+prefac 0.8
+dt 0.001
+tf 1
+time_print_type linear
+timeprint 1
+timeprint_increase_factor 1
+initial_conditions defects
+defect 10.5 20.5  0.5
+defect 30.5 20.5 -0.5
+phi_i 0
+initial_output_file_number 0
+output_folder build
+run
