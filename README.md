@@ -55,6 +55,13 @@ auxiliar/ -> some auxiliar files to aid the user;
 	them; --periodic x,y for periodic domains; --start 1 skips a random initial state.
 	Test: python3 auxiliar/defects/test_track_defects.py (synthetic fields with known defects);
 
+	auxiliar/defects/track_lines.py -> disclination lines of three-dimensional runs: crossed plaquettes
+	(the director comes back reversed around them) joined into lines, with the local profile
+	Omega.t along each line (+1: +1/2 wedge, -1: -1/2 wedge, 0: twist); writes the line points and,
+	per snapshot, the number of lines, their length and the fractions of each profile. Example:
+	    python3 auxiliar/defects/track_lines.py run_dir --log run.log --plot lines.png
+	Test: python3 auxiliar/defects/test_track_lines.py (wedge and twist lines, a loop, a uniform field);
+
 	auxiliar/renderize/ -> contain routines to renderize the directors and the isosurface of the parameter order S;
 
 	auxiliar/boundaries/ -> contain 2 examples off c++ files that can be used to produce boundary files;
