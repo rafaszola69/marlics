@@ -1,13 +1,12 @@
 #ifndef FLOW_CPU_H
 #define FLOW_CPU_H
 // Backflow on the CPU: Stokes flow driven by the liquid crystal stress in a periodic box, solved
-// with FFTs (pocketfft, src/third_party), and its terms added to fill_ki. See flow_physics.h.
+// with FFTs (pocketfft, src/third_party, used only in flow_cpu.cpp so that nvcc never compiles it),
+// and its terms added to fill_ki. See flow_physics.h.
 #include <complex>
 #include <vector>
 #include <iostream>
 #include <cstdlib>
-#define POCKETFFT_NO_MULTITHREADING
-#include "third_party/pocketfft_hdronly.h"
 #include "driver.h"
 #include "geometry.h"
 #include "flow_physics.h"
@@ -95,15 +94,8 @@ class FlowCpu
       for(int a=0; a<3; a++) us[3*s+a]=fk[a][s].real();
   }
 
-  void fft(bool forward)
-  {
-    const pocketfft::shape_t shape={(size_t)L.Nz,(size_t)L.Ny,(size_t)L.Nx};
-    const ptrdiff_t c=sizeof(std::complex<double>);
-    const pocketfft::stride_t stride={(ptrdiff_t)L.Ny*L.Nx*c,(ptrdiff_t)L.Nx*c,c};
-    const pocketfft::shape_t axes={0,1,2};
-    for(int a=0; a<3; a++)
-      pocketfft::c2c(shape,stride,stride,axes,forward,fk[a].data(),fk[a].data(),forward ? 1. : 1./n);
-  }
+  //In-place FFT of the three components of fk (flow_cpu.cpp).
+  void fft(bool forward);
 
   const LatticeView L;
   FlowParams P;
