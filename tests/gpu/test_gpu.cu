@@ -135,6 +135,8 @@ int main()
 
   compare_flow("tests/inputs/flow_pair.txt");
   compare_relaxation("tests/inputs/flow_pair.txt","DP5");
+  compare_flow("tests/inputs/active_pair.txt");
+  compare_relaxation("tests/inputs/active_pair.txt","DP5");
 
   fprintf(stderr, failed ? "SOME GPU CHECKS FAILED\n" : "All GPU checks passed\n");
   return failed ? 1 : 0;

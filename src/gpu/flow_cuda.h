@@ -67,6 +67,7 @@ class FlowCuda
   {
     P.eta=sim_param->viscosity;
     P.xi=sim_param->xi;
+    P.zeta=sim_param->activity;
     if(!L.periodic[0] || !L.periodic[1] || !L.periodic[2] || L.n_surface>0)
       {
         std::cout << "The flow (backflow) is only available in periodic domains (geometry bulk).\nAborting the program.\n";

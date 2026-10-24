@@ -481,6 +481,11 @@ void driver::setup_Simulation(void)
       
     case parameter_status::set:
 
+      if ( sim_param.activity!=0 && strcasecmp(sim_param.flow,"stokes") != 0 )
+        {
+          std::cout << "activity acts through the flow: it needs \"flow stokes\".\nAborting the program.\n";
+          exit(1);
+        }
       if ( strcasecmp(sim_param.flow,"stokes") == 0 )
         {
           if( sim_param.viscosity<=0 )
@@ -710,6 +715,12 @@ int driver::parse_input_file(char input_name[])
     else if ( strcasecmp(parser,"viscosity") == 0 || strcasecmp(parser,"eta") == 0 )
         {
           error_handler=fscanf(input_file,"%lf",&sim_param.viscosity);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"activity") == 0 || strcasecmp(parser,"zeta") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.activity);
           error_check(error_handler,parser);
           garbage=fgets(garbage,400,input_file);
         }

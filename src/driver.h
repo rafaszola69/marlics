@@ -133,6 +133,7 @@ struct Simulation_Parameters
   double viscosity=0.;      /* isotropic viscosity, Pa s */
   double xi=0.;             /* flow-aligning parameter (no default: aligning or tumbling depends on it) */
   bool xi_set=false;
+  double activity=0.;       /* active stress -activity*q (10^6 Pa); needs the flow */
   double Atol=0.001;
   double Rtol=0.001;
   double prefac=0.8;

@@ -16,6 +16,7 @@ struct FlowParams
 {
   double eta;   //isotropic viscosity (Pa s)
   double xi;    //flow-aligning parameter
+  double zeta;  //activity: active stress -zeta*q (10^6 Pa)
 };
 
 //Host only: whether the liquid crystal aligns with a shear flow, and at which angle from the flow
@@ -57,7 +58,7 @@ MARLICS_HD inline void full_tensor(const double * v, double M[3][3])
 }
 
 //Stress at site s (sigma[3*i+j], force density f_i = d_j sigma_ij), from Q and k=Lambda*H at s:
-//  sigma = -xi (h A + A h) + 2 xi A (q:h) - T + q h - h q,   A=q+I/3,
+//  sigma = -xi (h A + A h) + 2 xi A (q:h) - T + q h - h q - zeta q,   A=q+I/3,
 //  T_ij = d_i Q_c df/d(d_j Q_c) (distortion stress; isotropic parts go into the pressure).
 MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, const double * Qij, const double * k_i, int s, double sigma[9])
 {
@@ -87,7 +88,7 @@ MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, co
             qhm+=q[i][l]*h[l][j]; hq+=h[i][l]*q[l][j];
           }
         for(int c=0; c<5; c++) T+=dQ[5*i+c]*g[5*j+c];
-        sigma[3*i+j]=-F.xi*(hA+Ah)+2*F.xi*A[i][j]*qh-T+qhm-hq;
+        sigma[3*i+j]=-F.xi*(hA+Ah)+2*F.xi*A[i][j]*qh-T+qhm-hq-F.zeta*q[i][j];
       }
 }
 

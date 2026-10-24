@@ -98,6 +98,11 @@ Backflow ("flow stokes" in the input file):
 	                xi > 3S/(2+S), at the angle theta with cos(2 theta) = 3S/((2+S) xi), and tumbles
 	                below it (e.g. S=0.53: aligning for xi > 0.63, 13 degrees for xi=0.7). The start of
 	                the run reports which regime the input is in.
+	    activity    (optional, default 0) active stress -activity*q, q=2Q/3, in 10^6 Pa: active nematic.
+	                activity>0 is extensile (bend instability of the uniform state; +1/2 defects
+	                self-propel towards their head), activity<0 contractile. The active length
+	                sqrt(L1/|activity|) should span several lattice spacings.
+	                Checked by tests/test_active.cpp (instabilities, defect self-propulsion).
 	With the flow, the snapshots have three more columns, ux,uy,uz: the velocity (nm/us) of the
 	written state. Without it they are unchanged. The flow changes the dynamics, not the equilibrium states, so it needs a time
 	integrator (DP5, RK2, Euler), not FIRE.
