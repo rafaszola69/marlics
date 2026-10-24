@@ -54,9 +54,25 @@ examples/ -> a series of MarLiCs usage examples;
 
 notebook/ -> Some Mathematica nb files used to evaluate symbolically the functional derivatives.
 
-tests/ -> consistency tests, run with "make test" (about 15 s). They check that the dynamics (fill_ki) is the gradient of the reported energy, that the anchoring energies match their functional derivatives, that DP5 never increases the energy and that FIRE converges to a stationary state. Run them after changing energies, boundaries, geometries or integrators;
+tests/ -> consistency tests, run with "make test" (about 15 s), including the two-dimensional simulations (test_2d). They check that the dynamics (fill_ki) is the gradient of the reported energy, that the anchoring energies match their functional derivatives, that DP5 never increases the energy and that FIRE converges to a stationary state. Run them after changing energies, boundaries, geometries or integrators;
 	
 makefile -> a makefile used to compile the code (make), or to compile and run the tests (make test)
+
+Two-dimensional simulations ("dimension 2" in the input file):
+	A single layer (Nz=1, set automatically) with no variation along z. The Q tensor keeps its five
+	components, so the physics is the 3D one (chirality, out-of-plane director): it is exactly the
+	z-invariant 3D system (tests/test_2d.cpp). Energies refer to a slice of thickness dz (default dx).
+	Geometries: disk (alias cylinder; Nx=Ny), channel (walls at y=0 and y=Ny-1, periodic x),
+	box (walls x=0,Nx-1 -> boundary 0, y=0,Ny-1 -> boundary 1), bulk (periodic) and custom.
+	These are periodic in z, so with dimension 3 and Nz>1 they are a cylinder, a channel and a
+	square tube. sphere, slab, hemisphere and the wedges need three dimensions.
+	plane_confinement W (10^6 J/m^3): energy W*Q_zz keeping the director in the plane. Without it,
+	planar degenerate (fg) walls let the director escape along z, which is what the 3D physics does.
+	It acts like a field along z with delta_epsilon<0, but independently of the field.
+	Initial conditions: random, homogeneous, read_from_file, defects ("defect x y charge" lines,
+	lattice units, director angle phi_i plus the defects' winding) and cholesteric_2d (helix axis in
+	the plane at the angle phi_i, pitch p0_i, handedness of q0).
+	examples/2d/ has input files for a defect pair in a disk, a quenched box and a cholesteric channel.
 
 GPU (NVIDIA, CUDA):
 	"make gpu" builds marlics_gpu, which runs on the CPU or, with "device gpu" in the input file, on the GPU.

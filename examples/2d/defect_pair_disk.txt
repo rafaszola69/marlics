@@ -1,0 +1,38 @@
+# Two-dimensional disk (planar anchoring along the rim) with a +1/2 / -1/2 pair that annihilates.
+# Dynamics: DP5 (Beris-Edwards without flow). Snapshots every 10 time units.
+dimension 2
+geometry disk
+integrator DP5
+
+Nx 101
+Ny 101
+dx 10.0
+dy 10.0
+dz 10.0                /* thickness the energies refer to (10^-9 m) */
+
+a  0.172               /* 5CB (10^6 J/K.m^3) */
+B -2.12
+C  1.74
+T  -1.0
+L1 40.0                /* one elastic constant (10^-12 N) */
+mu_1      0.3
+mu_1_s    3.0
+
+plane_confinement 0.05 /* keeps the director in the plane (10^6 J/m^3) */
+
+anchoring_type 0 fg     /* planar degenerate: tangent to the rim thanks to plane_confinement */
+Wo1 0 10.0
+
+initial_conditions defects
+defect 30.5 50.5  0.5   /* x y charge, lattice units */
+defect 70.5 50.5 -0.5
+phi_i 0
+
+dt 0.001
+tf 600
+time_print_type linear
+timeprint 10
+timeprint_increase_factor 10
+initial_output_file_number 0
+output_folder .
+run
