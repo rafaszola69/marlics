@@ -27,6 +27,7 @@ class FlowCpu
     sigma.resize(9*n); u.resize(3*n);
     for(int a=0; a<3; a++) fk[a].resize(n);
     std::cout << "Backflow: Stokes flow in a periodic box (FFT), viscosity=" << P.eta << " Pa s, xi=" << P.xi << ".\n";
+    flow_alignment_report(P.xi,L.bulk.S_eq);
   }
 
   //Adds the flow terms to k_i (which holds Lambda*H on entry). Called outside parallel regions.

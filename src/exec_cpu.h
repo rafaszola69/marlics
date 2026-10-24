@@ -108,6 +108,15 @@ class CpuExec
 
   FlowCpu * flow;
 
+  //Flow velocity for the state Qij (3 per site), or NULL without flow.
+  const double * host_velocity(double * Qij)
+  {
+    if(!flow) return NULL;
+    std::vector<double> k(5*n_sites);
+    fill_ki(k.data(),Qij);
+    return flow->velocity();
+  }
+
   //Total energy (10^-21 J).
   double energy(const double * Qij)
   {

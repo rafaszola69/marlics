@@ -43,7 +43,7 @@ int main(int argc, char **argv)
   if(Lc_driver.sim_param.ic_flag[1]==parameter_status::unset)
    {
       //Print a snaphot if the ic was not gotten from a file.
-      Lc_driver.Data_Container->write_state(t, Lc_driver.Qij, Lc_driver.LcS_Geometry->point_type);
+      Lc_driver.Data_Container->write_state(t, Lc_driver.Qij, Lc_driver.LcS_Geometry->point_type, Lc_driver.LcS_Integrator->velocity(Lc_driver.Qij));
    }
   
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     {
 
       continue_condition=Lc_driver.LcS_Integrator->evolve(Lc_driver.Qij, & t , Lc_driver.sim_param.timeprint );//! timestep evolution
-      Lc_driver.Data_Container->write_state(t, Lc_driver.Qij, Lc_driver.LcS_Geometry->point_type);
+      Lc_driver.Data_Container->write_state(t, Lc_driver.Qij, Lc_driver.LcS_Geometry->point_type, Lc_driver.LcS_Integrator->velocity(Lc_driver.Qij));
       
       Lc_driver.update_timeprint( ) ;
       

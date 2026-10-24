@@ -83,6 +83,7 @@ class FlowCuda
     dims[rank++]=L.Nx;
     CUFFT_CHECK(cufftPlanMany(&plan, rank, dims, NULL, 1, (int)n, NULL, 1, (int)n, CUFFT_Z2Z, 3));
     std::cout << "Backflow on the GPU: Stokes flow in a periodic box (cuFFT), viscosity=" << P.eta << " Pa s, xi=" << P.xi << ".\n";
+    flow_alignment_report(P.xi,L.bulk.S_eq);
   }
 
   ~FlowCuda()

@@ -7,6 +7,7 @@
 // fill_ki already gives (k=Lambda*H at bulk sites), and dQ/dt = (3/2) dq/dt.
 // Units: u in nm/us, sigma in 10^6 Pa, eta in Pa s, time in us.
 // Periodic domains only (bulk geometry): every derivative is a central difference with wrap-around.
+#include <cstdio>
 #include "physics.h"
 #include "lattice.h"
 #include "physics_ldg_gradient.h"
@@ -16,6 +17,18 @@ struct FlowParams
   double eta;   //isotropic viscosity (Pa s)
   double xi;    //flow-aligning parameter
 };
+
+//Host only: whether the liquid crystal aligns with a shear flow, and at which angle from the flow
+//direction (cos 2 theta = 3S/((2+S) xi), Denniston, Orlandini and Yeomans 2001), or tumbles.
+inline void flow_alignment_report(double xi, double S)
+{
+  const double xi_c=3*S/(2+S);
+  if(xi>xi_c)
+    printf("xi=%g > 3S/(2+S)=%.3f (S=%.3f): flow aligning, at %.1f degrees from the flow direction.\n",
+           xi, xi_c, S, 0.5*acos(xi_c/xi)*180/3.141592653589793);
+  else
+    printf("xi=%g < 3S/(2+S)=%.3f (S=%.3f): flow tumbling (no aligning angle).\n", xi, xi_c, S);
+}
 
 //Neighbour of site s along axis at distance dir (+1/-1), periodic.
 MARLICS_HD inline int periodic_neighbor(const LatticeView& L, int s, int axis, int dir)

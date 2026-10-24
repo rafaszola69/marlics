@@ -131,7 +131,8 @@ struct Simulation_Parameters
   //Backflow: "none", or "stokes" (Stokes flow in a periodic box, see flow_physics.h).
   char flow[20]="none";
   double viscosity=0.;      /* isotropic viscosity, Pa s */
-  double xi=0.6;            /* flow-aligning parameter */
+  double xi=0.;             /* flow-aligning parameter (no default: aligning or tumbling depends on it) */
+  bool xi_set=false;
   double Atol=0.001;
   double Rtol=0.001;
   double prefac=0.8;

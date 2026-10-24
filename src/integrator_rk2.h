@@ -18,6 +18,7 @@ class RK2 : public Integrator
  public:
 
   virtual bool evolve( double *, double *, double);
+  virtual const double * velocity(double * Qij) { return exec.host_velocity(Qij); }
   virtual ~RK2(void);
   RK2( GEOMETRY  * , const struct Simulation_Parameters * );
 };

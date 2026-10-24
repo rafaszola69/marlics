@@ -18,6 +18,7 @@ class Euler : public Integrator
  public:
 
   virtual bool evolve( double *, double *, double);
+  virtual const double * velocity(double * Qij) { return exec.host_velocity(Qij); }
   virtual ~Euler(void);
   Euler( GEOMETRY  * , const struct Simulation_Parameters * );
 };

@@ -53,7 +53,7 @@ container::container(struct Simulation_Parameters * sim_param)
     }
     
           char first_name[300];
-          char fn[3];
+          char fn[32];
           sprintf(fn,"%d",file_number);
           std::string output_name=output_fname;
           std::size_t found = output_name.rfind("$$");
@@ -69,12 +69,12 @@ container::container(struct Simulation_Parameters * sim_param)
 }
 
 // Evaluate the n vector, along with the S and P parameters, and print in a ".csv" file
-void container::write_state(double t , const double   * Qij,const int * pt)
+void container::write_state(double t , const double   * Qij,const int * pt, const double * u)
 {
 
   FILE * snapshot;
   char time_stamp[250];
-  char fn[FILE_NUMBER_DIGITS];
+  char fn[32];
   int i,j,k;
   double d0, d1, n[3], l[3], data[9];
   
@@ -93,7 +93,7 @@ void container::write_state(double t , const double   * Qij,const int * pt)
 
   
 
-  fprintf(snapshot,"x,y,z,nx,ny,nz,lx,ly,lz,S,P,pt\n");
+  fprintf(snapshot, u ? "x,y,z,nx,ny,nz,lx,ly,lz,S,P,pt,ux,uy,uz\n" : "x,y,z,nx,ny,nz,lx,ly,lz,S,P,pt\n");
 
 
   
@@ -140,7 +140,11 @@ void container::write_state(double t , const double   * Qij,const int * pt)
               gsl_vector_free(eval);
               gsl_matrix_free(evec);
               
-              fprintf(snapshot,"%d,%d,%d,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%d\n", i,  j,  k, n[0], n[1], n[2], l[0], l[1], l[2],d0, 2.0*d1+d0,pt[(Nx*(Ny*k+j)+i)]);
+              const int s=Nx*(Ny*k+j)+i;
+              if(u)
+                fprintf(snapshot,"%d,%d,%d,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%d,%.5e,%.5e,%.5e\n", i,  j,  k, n[0], n[1], n[2], l[0], l[1], l[2],d0, 2.0*d1+d0,pt[s],u[3*s],u[3*s+1],u[3*s+2]);
+              else
+                fprintf(snapshot,"%d,%d,%d,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%.3lf,%d\n", i,  j,  k, n[0], n[1], n[2], l[0], l[1], l[2],d0, 2.0*d1+d0,pt[s]);
 
                 
             }     

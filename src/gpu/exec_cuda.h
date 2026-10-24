@@ -237,6 +237,19 @@ class CudaExec
     return sum(2*n_sites, MARLICS_LAMBDA (long i) { return e[i]; });
   }
 
+  //Flow velocity for the host state Qij (copied to the host, 3 per site), or NULL without flow.
+  const double * host_velocity(double * Qij)
+  {
+    if(!flow) return NULL;
+    double * Q=attach(Qij);
+    double * k=alloc(5*n_sites);
+    fill_ki(k,Q);
+    release(k);
+    u_host.resize(3*n_sites);
+    CUDA_CHECK(cudaMemcpy(u_host.data(), flow->velocity(), 3*n_sites*sizeof(double), cudaMemcpyDeviceToHost));
+    return u_host.data();
+  }
+
   //Device copy of the lattice description (tests).
   const LatticeView & view() const { return L; }
 
@@ -255,6 +268,7 @@ class CudaExec
   const long n_sites;
   const bool mixed;
   FlowCuda * flow;
+  std::vector<double> u_host;
   LatticeView L;
   void * partial;
   double * Q_dev;

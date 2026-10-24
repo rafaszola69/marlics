@@ -488,6 +488,13 @@ void driver::setup_Simulation(void)
               std::cout << "flow stokes needs the viscosity (Pa s).\nAborting the program.\n";
               exit(1);
             }
+          if( !sim_param.xi_set )
+            {
+              std::cout << "flow stokes needs the flow-aligning parameter xi. The liquid crystal aligns with a\n"
+                        << "shear flow for xi > 3S/(2+S) (" << 3*sim_param.S_eq/(2+sim_param.S_eq) << " here, S_eq=" << sim_param.S_eq
+                        << ") and tumbles below it.\nAborting the program.\n";
+              exit(1);
+            }
           if( strncasecmp(sim_param.integrator_type,"FIRE",4) == 0 )
             {
               std::cout << "The flow changes the dynamics, not the equilibrium states: use a time integrator (DP5, RK2, Euler), not FIRE.\nAborting the program.\n";
@@ -710,6 +717,7 @@ int driver::parse_input_file(char input_name[])
         {
           error_handler=fscanf(input_file,"%lf",&sim_param.xi);
           error_check(error_handler,parser);
+          sim_param.xi_set=true;
           garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"dimension") == 0 )

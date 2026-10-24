@@ -9,7 +9,8 @@ class container
 
   container(struct Simulation_Parameters * );
   ~container(void) {};
-  void write_state(double  , const double   *,const int *);
+  //u: flow velocity (3 per site, nm/us), written as ux,uy,uz only when there is a flow (u!=NULL).
+  void write_state(double  , const double   *,const int *, const double * u=NULL);
   
  protected:
   

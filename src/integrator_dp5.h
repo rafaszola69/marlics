@@ -36,6 +36,7 @@ class DP5 : public Integrator
  public:
 
   virtual bool evolve( double *, double *, double);
+  virtual const double * velocity(double * Qij) { return exec.host_velocity(Qij); }
   virtual ~DP5(void);
   DP5( GEOMETRY  * , const struct Simulation_Parameters *, const ButcherTableau & =dormand_prince_m );
 };

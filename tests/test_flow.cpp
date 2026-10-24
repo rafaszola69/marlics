@@ -12,6 +12,9 @@
 #include "exec_cpu.h"
 #include "integrator_factory.h"
 #include "flow_cpu.h"
+#include "container.h"
+#include <fstream>
+#include <string>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -185,6 +188,25 @@ static void same_equilibrium()
   check("same final energy with and without flow (rel.)", fabs(E[0]-E[1])/fabs(E[1])<1e-6, "%.1e", fabs(E[0]-E[1])/fabs(E[1]));
 }
 
+//Snapshots carry ux,uy,uz only when there is a flow.
+static void snapshot_columns()
+{
+  for(int c=0; c<2; c++)
+    {
+      driver * d=setup([c](Simulation_Parameters& p){ if(c) strcpy(p.flow,"none"); p.Nx=p.Ny=12;
+                                                     p.first_output_file_number=900+c; });
+      Integrator * it=make_integrator<CpuExec>(d->LcS_Geometry,&d->sim_param);
+      container out(&d->sim_param);
+      out.write_state(0,d->Qij,d->LcS_Geometry->point_type,it->velocity(d->Qij));
+      std::ifstream f(c ? "build/director_field_901.csv" : "build/director_field_900.csv");
+      std::string header;
+      std::getline(f,header);
+      const bool has_u= header.find("ux,uy,uz")!=std::string::npos;
+      check(c ? "snapshot without flow: no velocity columns" : "snapshot with flow: ux,uy,uz columns", has_u==(c==0), "%.0f", (double)has_u);
+      delete d;
+    }
+}
+
 int main()
 {
   fprintf(stderr,"test_flow: backflow\n");
@@ -193,5 +215,6 @@ int main()
   uniform_state();
   energy_decreases();
   same_equilibrium();
+  snapshot_columns();
   return failed ? 1 : 0;
 }
