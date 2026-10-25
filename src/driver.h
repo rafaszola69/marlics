@@ -137,6 +137,9 @@ struct Simulation_Parameters
   double activity=0.;       /* active stress -activity*q (10^6 Pa); needs the flow */
   double wall_velocity[3]={0.,0.,0.};  /* velocity of the upper wall (channel, slab), nm/us */
   int flow_solver=0;        /* confined geometries: 0 automatic, 1 direct, 2 iterative (flow_confined.h) */
+  //Surface sites: "local" relaxes them with the local boundary condition (one-sided normal
+  //derivative), "variational" with the exact gradient of the discrete energy (lattice.h).
+  bool surface_variational=false;
   double Atol=0.001;
   double Rtol=0.001;
   double prefac=0.8;

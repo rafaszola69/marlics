@@ -26,6 +26,7 @@ struct BulkParams
   double S_eq;
   double deltaepslon, elecfieldx, elecfieldy, elecfieldz;
   double plane_W;   //plane confinement: energy density plane_W*Q_zz
+  int surface_variational;  //surface sites follow the exact gradient of the discrete energy (lattice.h)
 };
 
 enum BoundaryKind { BC_STRONG=0, BC_RP=1, BC_FG=2, BC_HOMEOTROPIC=3 };

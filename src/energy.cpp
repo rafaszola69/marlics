@@ -31,6 +31,7 @@ ENERGY::ENERGY(const struct Simulation_Parameters * lc) :
   bulk_params.deltaepslon=deltaepslon;
   bulk_params.elecfieldx=elecfieldx; bulk_params.elecfieldy=elecfieldy; bulk_params.elecfieldz=elecfieldz;
   bulk_params.plane_W=lc->plane_confinement;
+  bulk_params.surface_variational=lc->surface_variational;
 }
 
 

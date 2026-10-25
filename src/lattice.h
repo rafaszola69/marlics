@@ -9,6 +9,7 @@
 #include "physics_rp.h"
 #include "physics_fg.h"
 #include "physics_homeotropic.h"
+#include "physics_ldg_gradient.h"
 
 //A surface site and its stencil: dQ along axis a is w[a]*(Q[np[a]]-Q[nm[a]])/d_a, with w=0.5 for
 //a central difference and 1 for a one-sided one.
@@ -132,23 +133,6 @@ MARLICS_HD inline void bulk_site_force(const LatticeView& L, const double * Qij,
     }
 }
 
-//Surface site: first derivatives from its stencil, then the natural boundary condition.
-template<class Real=double>
-MARLICS_HD inline void surface_site_force(const LatticeView& L, const double * Qij, const SurfaceSite& S, double out[5])
-{
-  double QN[5], dQ[15];
-
-  for(int ll=0; ll<=4;ll++)
-    {
-      QN[ll]=Qij[5*S.site+ll];
-      for(int a=0; a<3; a++) dQ[5*a+ll]=S.w[a]*(Qij[5*S.np[a]+ll]-Qij[5*S.nm[a]+ll])*L.d_1[a];
-    }
-  const RealArray<Real,5> q(QN);
-  const RealArray<Real,15> d(dQ);
-  const RealArray<Real,3> n(S.v);
-  boundary_derivative<Real>(L.bulk,L.bc[S.bc],q.x,d.x,n.x,out);
-}
-
 //Neighbour of site s along axis in direction dir (+1/-1). Outside points and non-periodic domain
 //edges return the site itself (zero one-sided difference).
 MARLICS_HD inline int lattice_neighbor(const LatticeView& L, int s, int axis, int dir)
@@ -192,6 +176,89 @@ MARLICS_HD inline double bulk_site_energy(const LatticeView& L, const double * Q
           f+=ldg_energy_calculation(L.bulk,QN,dQ,v);
         }
   return 0.125*f-L.bulk.plane_W*(QN[0]+QN[3]);
+}
+
+//Gradient of the bulk part of the discrete energy, sum over sites of dV*bulk_site_energy, with
+//respect to the independent components of Q at site t, divided by dV: the octants of t and those of
+//its neighbours that reach t.
+MARLICS_HD inline void bulk_energy_gradient(const LatticeView& L, const double * Qij, int t, double g[5])
+{
+  const double sg[2]={-1.,1.};
+  const double v[3]={0.,0.,0.};
+  double QN[5], dQ[15], fQ[5], fD[15];
+
+  for(int ll=0; ll<=4; ll++) g[ll]=0.;
+  for(int s_axis=-1; s_axis<3; s_axis++)
+    for(int s_dir=0; s_dir<2; s_dir++)
+      {
+        //s_axis=-1: site t itself (once); otherwise its neighbour along s_axis, whose octants pointing
+        //back to t depend on Q_t through d_{s_axis}Q.
+        if(s_axis<0 && s_dir==1) continue;
+        const int s= s_axis<0 ? t : lattice_neighbor(L,t,s_axis,2*s_dir-1);
+        if(s_axis>=0 && (s==t || lattice_neighbor(L,s,s_axis,1-2*s_dir)!=t)) continue;
+        int nb[3][2];
+        for(int a=0; a<3; a++) for(int d=0; d<2; d++) nb[a][d]=lattice_neighbor(L,s,a,2*d-1);
+        for(int ll=0; ll<=4; ll++) QN[ll]=Qij[5*s+ll];
+        for(int o=0; o<8; o++)
+          {
+            const int oc[3]={o&1, (o>>1)&1, (o>>2)&1};
+            if(s_axis>=0 && oc[s_axis]!=1-s_dir) continue;
+            for(int a=0; a<3; a++)
+              for(int ll=0; ll<=4; ll++) dQ[5*a+ll]=sg[oc[a]]*(Qij[5*nb[a][oc[a]]+ll]-QN[ll])*L.d_1[a];
+            ldg_gradient_derivative(L.bulk,QN,dQ,fD);
+            if(s_axis<0)
+              {
+                ldg_value_derivative(L.bulk,QN,dQ,fQ);
+                for(int ll=0; ll<=4; ll++) g[ll]+=0.125*fQ[ll];
+                for(int a=0; a<3; a++)
+                  if(nb[a][oc[a]]!=t)
+                    for(int ll=0; ll<=4; ll++) g[ll]-=0.125*sg[oc[a]]*L.d_1[a]*fD[5*a+ll];
+              }
+            else
+              for(int ll=0; ll<=4; ll++) g[ll]+=0.125*sg[oc[s_axis]]*L.d_1[s_axis]*fD[5*s_axis+ll];
+          }
+      }
+  g[0]-=L.bulk.plane_W;
+  g[3]-=L.bulk.plane_W;
+}
+
+//Surface site. Local dynamics: first derivatives from its stencil, then the natural boundary
+//condition (the published Marlics scheme; its elastic part, a one-sided normal derivative, is not the
+//gradient of the discrete energy, which can then rise for a while, mostly with degenerate anchoring).
+//Variational dynamics: the exact gradient of the discrete energy, the bulk energy the site carries
+//and its anchoring energy, per unit area: L nu.grad Q + df_s/dQ up to O(h) on a flat wall.
+template<class Real=double>
+MARLICS_HD inline void surface_site_force(const LatticeView& L, const double * Qij, const SurfaceSite& S, double out[5])
+{
+  double QN[5], dQ[15];
+
+  if(L.bulk.surface_variational && L.bc[S.bc].kind!=BC_STRONG)
+    {
+      BulkParams P=L.bulk;
+      P.L1=P.L2=P.L3=P.Ls=P.Lq_tilde=0.;
+      for(int ll=0; ll<=4; ll++) QN[ll]=Qij[5*S.site+ll];
+      for(int m=0; m<15; m++) dQ[m]=0.;
+      boundary_derivative<double>(P,L.bc[S.bc],QN,dQ,S.v,out);
+      double g[5];
+      bulk_energy_gradient(L,Qij,S.site,g);
+      const double c=L.bulk.Lambda_s*L.dV/S.area;
+      out[0]-=c*(2.*g[0]-g[3])/3.;
+      out[3]-=c*(2.*g[3]-g[0])/3.;
+      out[1]-=0.5*c*g[1];
+      out[2]-=0.5*c*g[2];
+      out[4]-=0.5*c*g[4];
+      return;
+    }
+
+  for(int ll=0; ll<=4;ll++)
+    {
+      QN[ll]=Qij[5*S.site+ll];
+      for(int a=0; a<3; a++) dQ[5*a+ll]=S.w[a]*(Qij[5*S.np[a]+ll]-Qij[5*S.nm[a]+ll])*L.d_1[a];
+    }
+  const RealArray<Real,5> q(QN);
+  const RealArray<Real,15> d(dQ);
+  const RealArray<Real,3> n(S.v);
+  boundary_derivative<Real>(L.bulk,L.bc[S.bc],q.x,d.x,n.x,out);
 }
 
 //Anchoring energy of a surface site (10^-21 J): density times the area the site represents.

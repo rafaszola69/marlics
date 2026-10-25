@@ -744,6 +744,20 @@ int driver::parse_input_file(char input_name[])
             }
           garbage=fgets(garbage,400,input_file);
         }
+    else if ( strcasecmp(parser,"surface_dynamics") == 0 )
+        {
+          char kind[20];
+          error_handler=fscanf(input_file,"%19s",kind);
+          error_check(error_handler,parser);
+          if( strcasecmp(kind,"local")==0 ) sim_param.surface_variational=false;
+          else if( strcasecmp(kind,"variational")==0 ) sim_param.surface_variational=true;
+          else
+            {
+              std::cout << "surface_dynamics must be local or variational (found " << kind << ").\nAborting the program.\n";
+              exit(1);
+            }
+          garbage=fgets(garbage,400,input_file);
+        }
     else if ( strcasecmp(parser,"wall_velocity") == 0 )
         {
           error_handler=fscanf(input_file,"%lf %lf %lf",&sim_param.wall_velocity[0],&sim_param.wall_velocity[1],&sim_param.wall_velocity[2]);

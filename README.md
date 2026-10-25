@@ -74,6 +74,19 @@ tests/ -> consistency tests, run with "make test" (about 15 s), including the tw
 	
 makefile -> a makefile used to compile the code (make), or to compile and run the tests (make test)
 
+Surface dynamics ("surface_dynamics local|variational" in the input file):
+	local (default, the published scheme): each surface site relaxes with its local boundary
+	condition, Gamma_s (L nu.grad Q + df_s/dQ), the normal derivative taken one-sided. This is not
+	the gradient of the discrete energy, so the energy can rise for a while, mostly with planar
+	degenerate (fg) anchoring, where the surface director glides along the wall.
+	variational: each surface site follows the exact gradient of the discrete energy (the bulk energy
+	of its volume dV and its anchoring energy), divided by its area. On a flat wall this is the same
+	boundary condition up to O(h); the energy never rises and the stationary states are minima of the
+	reported energy. On coarse curved (staircase) surfaces it is markedly more accurate: in an fg
+	disk of radius 16 sites two +1/2 defects settle at r=0.66 R, the strong-anchoring value 5^(-1/4) R
+	(Duclos et al., Nat. Phys. 13, 58 (2017)), while the local scheme pushes them onto the wall; the
+	two agree from a radius of about 32 sites. tests/test_surface_dynamics.cpp checks it.
+
 Two-dimensional simulations ("dimension 2" in the input file):
 	A single layer (Nz=1, set automatically) with no variation along z. The Q tensor keeps its five
 	components, so the physics is the 3D one (chirality, out-of-plane director): it is exactly the
