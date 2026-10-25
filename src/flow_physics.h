@@ -6,7 +6,8 @@
 // written there for q=2Q/3 (Marlics uses Q=(S/2)(3nn-I)): h=(3/2)H, with H the molecular field that
 // fill_ki already gives (k=Lambda*H at bulk sites), and dQ/dt = (3/2) dq/dt.
 // Units: u in nm/us, sigma in 10^6 Pa, eta in Pa s, time in us.
-// Periodic domains only (bulk geometry): every derivative is a central difference with wrap-around.
+// Periodic domains (bulk geometry), or two flat walls (flow_walls.h): every derivative is a central
+// difference, wrapping around periodic axes; between walls the flow terms act at bulk sites only.
 #include <cstdio>
 #include "physics.h"
 #include "lattice.h"

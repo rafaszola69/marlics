@@ -1,0 +1,45 @@
+# Slab with backflow (used by test_flow_walls and test_gpu): walls at z=0 and z=Nz-1, chiral,
+# planar anchoring along x on the lower wall, homeotropic-like Rapini-Papoular on the upper one.
+geometry slab
+integrator DP5
+Nx 12
+Ny 10
+Nz 12
+dx 5.0
+dy 5.0
+dz 5.0
+a  0.086
+B -2.12
+C  1.74
+T  -1.0
+L1 6.0
+L2 3.0
+p0 80.0
+mu_1 0.3
+mu_1_s 3.0
+flow stokes
+viscosity 0.05
+xi 0.7
+atol 1e-6
+rtol 1e-6
+facmax 3.0
+facmin 0.4
+prefac 0.8
+dt 0.001
+tf 1
+time_print_type linear
+timeprint 1
+timeprint_increase_factor 1
+initial_conditions random
+seed 5
+anchoring_type 0 rp
+Wo1 0 1.0
+theta_0 0 90
+phi_0 0 0
+anchoring_type 1 rp
+Wo1 1 1.0
+theta_0 1 0
+phi_0 1 0
+initial_output_file_number 0
+output_folder build
+run

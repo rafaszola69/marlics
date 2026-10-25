@@ -486,6 +486,11 @@ void driver::setup_Simulation(void)
           std::cout << "activity acts through the flow: it needs \"flow stokes\".\nAborting the program.\n";
           exit(1);
         }
+      if ( (sim_param.wall_velocity[0]!=0 || sim_param.wall_velocity[1]!=0 || sim_param.wall_velocity[2]!=0) && strcasecmp(sim_param.flow,"stokes") != 0 )
+        {
+          std::cout << "wall_velocity moves the upper wall of the flow: it needs \"flow stokes\".\nAborting the program.\n";
+          exit(1);
+        }
       if ( strcasecmp(sim_param.flow,"stokes") == 0 )
         {
           if( sim_param.viscosity<=0 )
@@ -722,6 +727,12 @@ int driver::parse_input_file(char input_name[])
         {
           error_handler=fscanf(input_file,"%lf",&sim_param.activity);
           error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"wall_velocity") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf %lf %lf",&sim_param.wall_velocity[0],&sim_param.wall_velocity[1],&sim_param.wall_velocity[2]);
+          if(error_handler!=3) error_check(0,parser);
           garbage=fgets(garbage,400,input_file);
         }
     else if ( strcasecmp(parser,"xi") == 0 )

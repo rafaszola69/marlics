@@ -148,7 +148,7 @@ class CudaExec
 
     cudaDeviceProp prop;
     CUDA_CHECK(cudaGetDeviceProperties(&prop,0));
-    flow= (sim_param!=NULL && strcasecmp(sim_param->flow,"stokes")==0) ? new FlowCuda(L,sim_param) : NULL;
+    flow= (sim_param!=NULL && strcasecmp(sim_param->flow,"stokes")==0) ? new FlowCuda(L,host,sim_param) : NULL;
     std::cout << "GPU: " << prop.name << ", " << prop.totalGlobalMem/1048576 << " MiB, " << (mixed ? "mixed" : "double") << " precision.\n";
   }
 

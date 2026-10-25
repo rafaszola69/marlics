@@ -2,7 +2,7 @@
 //  - fill_ki and Energy_calc per site, on the initial condition of several inputs covering all
 //    geometries the GPU supports, the four anchoring types, every elastic term and the field;
 //  - FIRE and DP5 relaxations: same final energy and state on both devices;
-//  - backflow (cuFFT against pocketfft): same fill_ki and DP5 dynamics.
+//  - backflow (cuFFT against pocketfft), in periodic boxes and between walls: same fill_ki and DP5 dynamics.
 #include "gpu.cu"
 #include "exec_cpu.h"
 #include <cmath>
@@ -139,6 +139,12 @@ int main()
   compare_relaxation("tests/inputs/active_pair.txt","DP5");
   compare_flow("tests/inputs/active_3d.txt");
   compare_relaxation("tests/inputs/active_3d.txt","DP5");
+  compare_flow("tests/inputs/flow_channel_shear.txt");
+  compare_relaxation("tests/inputs/flow_channel_shear.txt","DP5");
+  compare_flow("tests/inputs/flow_channel_3d.txt");
+  compare_relaxation("tests/inputs/flow_channel_3d.txt","DP5");
+  compare_flow("tests/inputs/flow_slab.txt");
+  compare_relaxation("tests/inputs/flow_slab.txt","DP5");
 
   fprintf(stderr, failed ? "SOME GPU CHECKS FAILED\n" : "All GPU checks passed\n");
   return failed ? 1 : 0;

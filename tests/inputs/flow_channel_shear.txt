@@ -1,0 +1,42 @@
+# Two-dimensional active channel with a moving upper wall and a defect pair (used by test_gpu)
+dimension 2
+geometry channel
+integrator DP5
+Nx 24
+Ny 20
+dx 5.0
+dy 5.0
+a  0.086
+B -2.12
+C  1.74
+T  -1.0
+L1 6.0
+plane_confinement 0.05
+mu_1 0.3
+mu_1_s 3.0
+flow stokes
+viscosity 0.05
+xi 0.7
+activity 0.01
+wall_velocity 2.0 0 0
+atol 1e-6
+rtol 1e-6
+facmax 3.0
+facmin 0.4
+prefac 0.8
+dt 0.001
+tf 1
+time_print_type linear
+timeprint 1
+timeprint_increase_factor 1
+initial_conditions defects
+defect 8.5 9.5 0.5
+defect 16.5 9.5 -0.5
+phi_i 0
+anchoring_type 0 fg
+Wo1 0 1.0
+anchoring_type 1 fg
+Wo1 1 1.0
+initial_output_file_number 0
+output_folder build
+run
