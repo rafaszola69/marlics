@@ -6,8 +6,10 @@
 // written there for q=2Q/3 (Marlics uses Q=(S/2)(3nn-I)): h=(3/2)H, with H the molecular field that
 // fill_ki already gives (k=Lambda*H at bulk sites), and dQ/dt = (3/2) dq/dt.
 // Units: u in nm/us, sigma in 10^6 Pa, eta in Pa s, time in us.
-// Periodic domains (bulk geometry), or two flat walls (flow_walls.h): every derivative is a central
-// difference, wrapping around periodic axes; between walls the flow terms act at bulk sites only.
+// Periodic domains (bulk geometry), two flat walls (flow_walls.h) or any other geometry
+// (flow_confined.h): every derivative is a central difference, wrapping around periodic axes; with
+// surface sites the flow terms act at bulk sites only, the velocity vanishes elsewhere, and the
+// stress at the non-bulk sites next to the bulk is extrapolated from it (boundary_stress).
 #include <cstdio>
 #include "physics.h"
 #include "lattice.h"
@@ -93,6 +95,27 @@ MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, co
       }
 }
 
+//Stress at a non-bulk site s (the force at bulk sites is a central difference of the stress, which
+//reaches the non-bulk sites next to the bulk): the mean, over its bulk face neighbours x, of the
+//linear extrapolation 2 sigma(x) - sigma(2x-s) (sigma(x) when 2x-s is not bulk). A uniform stress
+//then drives no flow, and an isotropic one is balanced by the pressure. Zero without bulk neighbours.
+MARLICS_HD inline void boundary_stress(const LatticeView& L, long s, double * sigma)
+{
+  double acc[9]={0,0,0,0,0,0,0,0,0};
+  int count=0;
+  for(int a=0; a<3; a++)
+    for(int dir=-1; dir<=1; dir+=2)
+      {
+        const int x=periodic_neighbor(L,(int)s,a,dir);
+        if(L.point_type[x]!=1) continue;
+        const int x2=periodic_neighbor(L,x,a,dir);
+        const bool two= L.point_type[x2]==1;
+        for(int c=0; c<9; c++) acc[c]+= two ? 2*sigma[9*(long)x+c]-sigma[9*(long)x2+c] : sigma[9*(long)x+c];
+        count++;
+      }
+  for(int c=0; c<9; c++) sigma[9*s+c]= count ? acc[c]/count : 0.;
+}
+
 //Force density f_i = d_j sigma_ij at site s.
 MARLICS_HD inline void site_force(const LatticeView& L, const double * sigma, int s, double f[3])
 {
@@ -107,8 +130,11 @@ MARLICS_HD inline void site_force(const LatticeView& L, const double * sigma, in
 //Stokes problem for one Fourier mode (m0,m1,m2), with the symbols of the central first difference
 //(i s_a) and of the 3-point Laplacian (lap), so that the velocity is divergence-free in the same
 //discrete sense as the rest of the code:  u = (f - s (s.f)/|s|^2) / (eta |lap|).
-//Modes with s=0 (uniform flow, checkerboards) carry no velocity. fr/fi: real and imaginary parts.
-MARLICS_HD inline void stokes_mode(const LatticeView& L, double eta, int m0, int m1, int m2, double fr[3], double fi[3])
+//The uniform mode carries no velocity; modes with s=0 and lap>0 (checkerboards) carry none either in a
+//periodic box, while keep_checkerboards gives them u = f/(eta lap) (they feel no pressure), which makes
+//this the exact inverse of the periodic Stokes operator apart from the uniform mode (flow_confined.h).
+//fr/fi: real and imaginary parts.
+MARLICS_HD inline void stokes_mode(const LatticeView& L, double eta, int m0, int m1, int m2, double fr[3], double fi[3], bool keep_checkerboards=false)
 {
   const int m[3]={m0,m1,m2}, n[3]={L.Nx,L.Ny,L.Nz};
   const double two_pi=6.283185307179586;
@@ -120,9 +146,14 @@ MARLICS_HD inline void stokes_mode(const LatticeView& L, double eta, int m0, int
       s2+=s[a]*s[a];
       lap+=(2-2*cos(ka))*L.d_1[a]*L.d_1[a];
     }
-  if(s2<1e-12*lap || lap==0)
+  if(lap==0 || (s2<1e-12*lap && !keep_checkerboards))
     {
       for(int a=0; a<3; a++) fr[a]=fi[a]=0;
+      return;
+    }
+  if(s2<1e-12*lap)
+    {
+      for(int a=0; a<3; a++) { fr[a]/=eta*lap; fi[a]/=eta*lap; }
       return;
     }
   const double sfr=s[0]*fr[0]+s[1]*fr[1]+s[2]*fr[2], sfi=s[0]*fi[0]+s[1]*fi[1]+s[2]*fi[2];

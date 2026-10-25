@@ -19,3 +19,13 @@ void FlowCpu::fft(bool forward)
   for(int a=0; a<3; a++)
     pocketfft::c2c(shape,stride,stride,axes,forward,fk[a].data(),fk[a].data(),forward ? 1. : scale);
 }
+
+void fft_periodic(std::complex<double> * a, int Nx, int Ny, int Nz, int howmany, bool forward)
+{
+  const pocketfft::shape_t shape={(size_t)Nz,(size_t)Ny,(size_t)Nx};
+  const ptrdiff_t c=sizeof(std::complex<double>);
+  const pocketfft::stride_t stride={(ptrdiff_t)Ny*Nx*c,(ptrdiff_t)Nx*c,c};
+  const long n=(long)Nx*Ny*Nz;
+  for(int k=0; k<howmany; k++)
+    pocketfft::c2c(shape,stride,stride,{0,1,2},forward,a+k*n,a+k*n,forward ? 1. : 1./n);
+}

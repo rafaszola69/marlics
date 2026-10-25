@@ -2,7 +2,8 @@
 //  - fill_ki and Energy_calc per site, on the initial condition of several inputs covering all
 //    geometries the GPU supports, the four anchoring types, every elastic term and the field;
 //  - FIRE and DP5 relaxations: same final energy and state on both devices;
-//  - backflow (cuFFT against pocketfft), in periodic boxes and between walls: same fill_ki and DP5 dynamics.
+//  - backflow (cuFFT against pocketfft), in periodic boxes, between walls and in confined geometries
+//    (direct and iterative Lagrange-force solves): same fill_ki and DP5 dynamics.
 #include "gpu.cu"
 #include "exec_cpu.h"
 #include <cmath>
@@ -73,9 +74,11 @@ static void compare_forces(const char * input)
 }
 
 //fill_ki with backflow (flow stokes in the input): CPU (pocketfft) against GPU (cuFFT).
-static void compare_flow(const char * input)
+//solver: confined geometries, 0 automatic, 2 iterative (conjugate gradients, tolerance 1e-10).
+static void compare_flow(const char * input, int solver=0)
 {
   driver * d=setup(input);
+  d->sim_param.flow_solver=solver;
   GEOMETRY * g=d->LcS_Geometry;
   const long N=(long)g->Nx*g->Ny*g->Nz;
   std::vector<double> kc(5*N), kg(5*N);
@@ -88,8 +91,8 @@ static void compare_flow(const char * input)
   CUDA_CHECK(cudaMemcpy(kg.data(),k,5*N*sizeof(double),cudaMemcpyDeviceToHost));
   exec.release(k);
   char what[300];
-  sprintf(what,"%s fill_ki with backflow (max rel. diff)",input);
-  check(what,rel_diff(kc,kg),1e-10);
+  sprintf(what,"%s fill_ki with backflow%s (max rel. diff)",input,solver==2 ? ", iterative" : "");
+  check(what,rel_diff(kc,kg),solver==2 ? 1e-8 : 1e-10);
   delete d;
 }
 
@@ -145,6 +148,14 @@ int main()
   compare_relaxation("tests/inputs/flow_channel_3d.txt","DP5");
   compare_flow("tests/inputs/flow_slab.txt");
   compare_relaxation("tests/inputs/flow_slab.txt","DP5");
+  compare_flow("tests/inputs/flow_disk.txt");
+  compare_flow("tests/inputs/flow_disk.txt",2);
+  compare_relaxation("tests/inputs/flow_disk.txt","DP5");
+  compare_flow("tests/inputs/flow_box.txt");
+  compare_relaxation("tests/inputs/flow_box.txt","DP5");
+  compare_flow("tests/inputs/flow_droplet.txt");
+  compare_flow("tests/inputs/flow_droplet.txt",2);
+  compare_relaxation("tests/inputs/flow_droplet.txt","DP5");
 
   fprintf(stderr, failed ? "SOME GPU CHECKS FAILED\n" : "All GPU checks passed\n");
   return failed ? 1 : 0;

@@ -1,0 +1,41 @@
+# Chiral droplet with backflow (used by test_flow_confined and test_gpu): homeotropic anchoring,
+# random start.
+geometry sphere
+integrator DP5
+Nx 16
+Ny 16
+Nz 16
+dx 5.0
+dy 5.0
+dz 5.0
+a  0.086
+B -2.12
+C  1.74
+T  -1.0
+L1 6.0
+Lq 6.0
+p0 60.0
+mu_1 0.3
+mu_1_s 3.0
+flow stokes
+viscosity 0.05
+xi 0.7
+atol 1e-6
+rtol 1e-6
+facmax 3.0
+facmin 0.4
+prefac 0.8
+dt 0.001
+tf 1
+time_print_type linear
+timeprint 1
+timeprint_increase_factor 1
+initial_conditions random
+theta_i 45
+phi_i 45
+seed 7
+anchoring_type 0 homeotropic
+Wo1 0 2.0
+initial_output_file_number 0
+output_folder build
+run

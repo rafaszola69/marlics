@@ -729,6 +729,21 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
           garbage=fgets(garbage,400,input_file);
         }
+    else if ( strcasecmp(parser,"flow_solver") == 0 )
+        {
+          char kind[20];
+          error_handler=fscanf(input_file,"%19s",kind);
+          error_check(error_handler,parser);
+          if( strcasecmp(kind,"auto")==0 ) sim_param.flow_solver=0;
+          else if( strcasecmp(kind,"direct")==0 ) sim_param.flow_solver=1;
+          else if( strcasecmp(kind,"iterative")==0 ) sim_param.flow_solver=2;
+          else
+            {
+              std::cout << "flow_solver must be auto, direct or iterative (found " << kind << ").\nAborting the program.\n";
+              exit(1);
+            }
+          garbage=fgets(garbage,400,input_file);
+        }
     else if ( strcasecmp(parser,"wall_velocity") == 0 )
         {
           error_handler=fscanf(input_file,"%lf %lf %lf",&sim_param.wall_velocity[0],&sim_param.wall_velocity[1],&sim_param.wall_velocity[2]);

@@ -128,13 +128,15 @@ struct Simulation_Parameters
   char integrator_type[200];  
   char device[20]="cpu";    //cpu or gpu
   char gpu_precision[20]="double";  //double or mixed (functional derivatives in float)
-  //Backflow: "none", or "stokes" (Stokes flow in a periodic box or between flat walls, see flow_physics.h).
+  //Backflow: "none", or "stokes" (Stokes flow in a periodic box, between flat walls or in any other
+  //geometry, see flow_physics.h).
   char flow[20]="none";
   double viscosity=0.;      /* isotropic viscosity, Pa s */
   double xi=0.;             /* flow-aligning parameter (no default: aligning or tumbling depends on it) */
   bool xi_set=false;
   double activity=0.;       /* active stress -activity*q (10^6 Pa); needs the flow */
   double wall_velocity[3]={0.,0.,0.};  /* velocity of the upper wall (channel, slab), nm/us */
+  int flow_solver=0;        /* confined geometries: 0 automatic, 1 direct, 2 iterative (flow_confined.h) */
   double Atol=0.001;
   double Rtol=0.001;
   double prefac=0.8;
