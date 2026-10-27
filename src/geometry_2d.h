@@ -25,6 +25,27 @@ class Geometry_Disk : public GEOMETRY
   virtual int * fill_point_type( void ) const ;
 };
 
+//Ellipse with semi-axes a along x and b along y (2D droplet; elliptic cylinder along z in 3D). One
+//boundary (0), normal along the gradient of (x/a)^2+(y/b)^2. With a=b it is the disk.
+class Geometry_Ellipse : public GEOMETRY
+{
+ public:
+
+  Geometry_Ellipse(const struct Simulation_Parameters * );
+  ~Geometry_Ellipse(void) {};
+  virtual int surface_site(int, int, int, double [3], double &) const ;
+  virtual void surface_stencil(int, int, int, int [3], int [3]) const ;
+  virtual bool is_periodic(int axis) const { return axis==2; }
+  virtual int backwardPTP(double *, const double * ) const { return 0; }
+
+ private:
+
+  double A, B;  //semi-axes of the level set the shell is built around, in lattice units
+  const double HNx, HNy;
+  double distance(double x, double y) const ;
+  virtual int * fill_point_type( void ) const ;
+};
+
 //Channel with walls at y=0 (boundary 0, normal -y) and y=Ny-1 (boundary 1, normal +y), periodic in x.
 class Geometry_Channel : public GEOMETRY
 {

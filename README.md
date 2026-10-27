@@ -91,7 +91,9 @@ Two-dimensional simulations ("dimension 2" in the input file):
 	A single layer (Nz=1, set automatically) with no variation along z. The Q tensor keeps its five
 	components, so the physics is the 3D one (chirality, out-of-plane director): it is exactly the
 	z-invariant 3D system (tests/test_2d.cpp). Energies refer to a slice of thickness dz (default dx).
-	Geometries: disk (alias cylinder; Nx=Ny), channel (walls at y=0 and y=Ny-1, periodic x),
+	Geometries: disk (alias cylinder; Nx=Ny), ellipse (semi-axes ellipse_a along x and ellipse_b
+	along y in nm, default Nx*dx/2 and Ny*dy/2; with a=b it is the disk site by site; the lattice must
+	satisfy Nx*dx >= 2a, Ny*dy >= 2b), channel (walls at y=0 and y=Ny-1, periodic x),
 	box (walls x=0,Nx-1 -> boundary 0, y=0,Ny-1 -> boundary 1), bulk (periodic) and custom.
 	These are periodic in z, so with dimension 3 and Nz>1 they are a cylinder, a channel and a
 	square tube. sphere, slab, hemisphere and the wedges need three dimensions.

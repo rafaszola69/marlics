@@ -96,6 +96,107 @@ void Geometry_Disk::surface_stencil(int i, int j, int k, int nm[3], int np[3]) c
   edge_stencil(N,periodic,low,high,i,j,k,nm,np);
 }
 
+//################################ Ellipse ################################
+
+//Semi-axes ellipse_a, ellipse_b (nm) are the nominal ones, like the disk radius N*dx/2: the surface
+//shell lies at the same distances from the level set of semi-axes (a-dx/2, b-dx/2) as the disk shell
+//from the circle of radius (N-1)*dx/2, so that a=b=N*dx/2 gives the disk site by site.
+Geometry_Ellipse::Geometry_Ellipse(const struct Simulation_Parameters * sim_param) : GEOMETRY (sim_param),
+  HNx((Nx-1.)/2.), HNy((Ny-1.)/2.)
+{
+  geometry_pointer=&(*this);
+  geometry_name="Ellipse";
+  number_of_boundaries=1;
+  bc_conditions=std::vector<class BOUNDARY *>(number_of_boundaries);
+  boundary_needed_to_be_defined="0";
+
+  if(sim_param->dx!=sim_param->dy)
+    {
+      std::cout << "The ellipse geometry needs dx=dy.\nAborting the program.\n";
+      exit(1);
+    }
+  const double dx=sim_param->dx;
+  const double a= sim_param->ellipse_a>0 ? sim_param->ellipse_a : Nx*dx/2;
+  const double b= sim_param->ellipse_b>0 ? sim_param->ellipse_b : Ny*dx/2;
+  A=a/dx-0.5;
+  B=b/dx-0.5;
+  //Like the disk, the outer part of the shell may be cut by the lattice edge.
+  if(A>HNx+1e-9 || B>HNy+1e-9)
+    {
+      std::cout << "The ellipse (a=" << a << ", b=" << b << " nm) does not fit the lattice: it needs Nx>="
+                << (int)ceil(2*a/dx-1e-9) << " and Ny>=" << (int)ceil(2*b/dx-1e-9) << ".\nAborting the program.\n";
+      exit(1);
+    }
+  std::cout << "Ellipse semi-axes a=" << a << " b=" << b << " nm" << std::endl;
+
+  point_type=fill_point_type( );
+
+  //Every bulk site must have bulk or surface neighbours, diagonals included (mixed derivatives).
+  for(int j=0; j<Ny; j++)
+    for(int i=0; i<Nx; i++)
+      if(point_type[j*Nx+i]==1)
+        for(int dj=-1; dj<=1; dj++)
+          for(int di=-1; di<=1; di++)
+            if(point_type[(j+dj)*Nx+i+di]==0)
+              {
+                std::cout << "Ellipse too eccentric for the lattice: bulk site (" << i << "," << j
+                          << ") touches an outside site.\nAborting the program.\n";
+                exit(1);
+              }
+
+  //Each surface site represents an equal share of the side (Ramanujan's perimeter of the mid-shell
+  //ellipse, like the mid-shell circle of the disk).
+  int n_surface=0;
+  for(int s=0; s<Nx*Ny*Nz; s++) if(point_type[s]>=2) n_surface++;
+  const double am=(A+0.225)*dx, bm=(B+0.225)*dx, h=(am-bm)*(am-bm)/((am+bm)*(am+bm));
+  dA=M_PI*(am+bm)*(1+3*h/(10+sqrt(4-3*h)))*Nz*sim_param->dz/n_surface;
+  std::cout << "Surface area per surface site dA=" << dA << std::endl;
+}
+
+//Signed distance (lattice units) to the ellipse of semi-axes A, B, to first order: (s-1)/|grad s|
+//with s=sqrt((x/A)^2+(y/B)^2), exact for a circle.
+double Geometry_Ellipse::distance(double x, double y) const
+{
+  const double s=sqrt(x*x/(A*A)+y*y/(B*B));
+  if(s==0) return -fmin(A,B);
+  const double g=sqrt(x*x/(A*A*A*A)+y*y/(B*B*B*B))/s;
+  return (s-1)/g;
+}
+
+int * Geometry_Ellipse::fill_point_type( void ) const
+{
+  int * point_kind;
+  if((point_kind= (int *)calloc(Nx*Ny*Nz, sizeof(int)))==NULL){ERROr}
+
+  for(int k=0; k<Nz; k++)
+    for(int j=0; j<Ny; j++)
+      for(int i=0; i<Nx; i++)
+        {
+          const double d=distance(i-HNx,j-HNy);
+          point_kind[(k*Ny+j)*Nx+i]= d<-0.5 ? 1 : (d<=0.95 ? 2 : 0);
+        }
+  return point_kind;
+}
+
+int Geometry_Ellipse::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  const double x=(i-HNx)/(A*A), y=(j-HNy)/(B*B), n=sqrt(x*x+y*y);
+  v[0]=x/n;
+  v[1]=y/n;
+  v[2]=0;
+  area=dA;
+  return 0;
+}
+
+//One-sided differences towards the axes, as in the disk ((x/a)^2+(y/b)^2 decreases along both).
+void Geometry_Ellipse::surface_stencil(int i, int j, int k, int nm[3], int np[3]) const
+{
+  const int N[3]={Nx,Ny,Nz};
+  const bool periodic[3]={false,false,true};
+  const bool low[2]={i<HNx, j<HNy}, high[2]={i>=HNx, j>=HNy};
+  edge_stencil(N,periodic,low,high,i,j,k,nm,np);
+}
+
 //################################ Channel ################################
 
 Geometry_Channel::Geometry_Channel(const struct Simulation_Parameters * sim_param) : GEOMETRY (sim_param)

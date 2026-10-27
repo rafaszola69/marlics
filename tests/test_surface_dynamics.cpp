@@ -1,7 +1,7 @@
 // Surface dynamics (surface_dynamics local|variational):
 //  - variational: the rate of every surface site is the exact gradient of the discrete energy,
 //    fill_ki = -Lambda_s * P[dE/dQ] / area (P the traceless projection of test_energy_gradient), for
-//    curved (disk, sphere) and flat (box, slab) surfaces, every elastic term, chirality, plane
+//    curved (disk, ellipse, sphere) and flat (box, slab) surfaces, every elastic term, chirality, plane
 //    confinement and the three anchoring kinds; strong anchoring stays fixed;
 //  - variational: the energy of a planar degenerate (fg) disk with two +1/2 defects never rises
 //    (with the local scheme it rises for a while, see lattice.h), and the defects settle at
@@ -130,6 +130,10 @@ int main()
   check("disk, homeotropic, all elastic terms, chiral, plane W",
         surface_gradient_error("tests/inputs/2d_disk.txt",all_terms)<1e-6, "%.2e",
         surface_gradient_error("tests/inputs/2d_disk.txt",all_terms));
+  const double ell=surface_gradient_error("tests/inputs/2d_ellipse.txt",all_terms);
+  check("ellipse 70 x 45 nm, homeotropic, all terms", ell<1e-6, "%.2e", ell);
+  const double ellfg=surface_gradient_error("tests/inputs/2d_ellipse.txt",[](Simulation_Parameters& p){ p.anchoring_type[0]="fg"; });
+  check("ellipse, fg", ellfg<1e-6, "%.2e", ellfg);
   const double box=surface_gradient_error("tests/inputs/2d_box.txt",all_terms);
   check("box, fg and rp walls with corners, all terms", box<1e-6, "%.2e", box);
   const double fgdisk=surface_gradient_error("tests/inputs/flow_disk.txt",[](Simulation_Parameters& p){ strcpy(p.initial_conditions,"random"); });

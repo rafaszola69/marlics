@@ -1,8 +1,9 @@
 // Two-dimensional simulations (dimension 2):
 //  - a single layer gives the same forces and energies as the z-invariant 3D system (Nz=3) for the
-//    disk, channel and box geometries, every elastic term, chirality and plane confinement on;
+//    disk, ellipse, channel and box geometries, every elastic term, chirality and plane confinement on;
 //  - with planar degenerate (fg) walls the director escapes along z, unless plane_confinement keeps
 //    it in the plane;
+//  - the ellipse with equal semi-axes is the disk;
 //  - the "defects" initial condition has the requested winding around each defect;
 //  - "cholesteric_2d" has the handedness preferred by the chiral term.
 #include "driver.h"
@@ -83,6 +84,34 @@ static void z_invariance(const char * input)
   check(what, dk/mk<1e-12, "%.1e", dk/mk);
   sprintf(what,"%s: 2D = z-invariant 3D, energy",strrchr(input,'/')+1);
   check(what, de/me<1e-12, "%.1e", de/me);
+}
+
+//The ellipse with a=b=N*dx/2 is the disk: same sites, forces and energies.
+static void ellipse_is_disk()
+{
+  std::vector<double> k[2], e[2];
+  std::vector<int> pt[2];
+  for(int c=0; c<2; c++)
+    {
+      driver * d=setup("tests/inputs/2d_disk.txt", [c](Simulation_Parameters& p){ if(c==1) strcpy(p.geometry,"ellipse"); });
+      smooth_field(d);
+      const long N=(long)d->sim_param.Nx*d->sim_param.Ny;
+      k[c].resize(5*N); e[c].resize(2*N);
+      pt[c].assign(d->LcS_Geometry->point_type,d->LcS_Geometry->point_type+N);
+      #pragma omp parallel
+      {
+        d->LcS_Geometry->fill_ki(k[c].data(),d->Qij);
+        #pragma omp barrier
+        d->LcS_Geometry->Energy_calc(e[c].data(),d->Qij);
+      }
+      delete d;
+    }
+  double dk=0, mk=0, de=0, me=0;
+  for(size_t s=0; s<k[0].size(); s++) { dk=fmax(dk,fabs(k[0][s]-k[1][s])); mk=fmax(mk,fabs(k[0][s])); }
+  for(size_t s=0; s<e[0].size(); s++) { de=fmax(de,fabs(e[0][s]-e[1][s])); me=fmax(me,fabs(e[0][s])); }
+  check("ellipse a=b: same sites as the disk", pt[0]==pt[1], "%g", 0.);
+  check("ellipse a=b: same force as the disk", dk/mk<1e-12, "%.1e", dk/mk);
+  check("ellipse a=b: same energy as the disk", de/me<1e-12, "%.1e", de/me);
 }
 
 static void relax(driver * d)
@@ -194,6 +223,8 @@ int main()
 {
   fprintf(stderr,"test_2d: two-dimensional simulations\n");
   z_invariance("tests/inputs/2d_disk.txt");
+  z_invariance("tests/inputs/2d_ellipse.txt");
+  ellipse_is_disk();
   z_invariance("tests/inputs/2d_channel.txt");
   z_invariance("tests/inputs/2d_box.txt");
   planar_escape(0);

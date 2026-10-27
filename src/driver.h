@@ -48,6 +48,9 @@ struct Simulation_Parameters
   double R_ex;           /* 10^-9 m */
   parameter_status radius_flag[2]={parameter_status::unset,
                                    parameter_status::unset};
+  /*Ellipse geometry: semi-axes along x and y (default Nx*dx/2, Ny*dy/2) */
+  double ellipse_a=0;    /* 10^-9 m */
+  double ellipse_b=0;    /* 10^-9 m */
   
   //Lc Parameters:
 
