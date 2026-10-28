@@ -141,6 +141,11 @@ Backflow ("flow stokes" in the input file):
 	                self-propel towards their head), activity<0 contractile. The active length
 	                sqrt(L1/|activity|) should span several lattice spacings.
 	                Checked by tests/test_active.cpp (instabilities, defect self-propulsion).
+	    chiral_activity (optional, default 0) chiral active stress -chiral_activity*(eps.q-q.eps)/2,
+	                eps_ij=eps_ijz (eps_xy=1), in 10^6 Pa (Hoffmann et al., Soft Matter 16, 764 (2020)).
+	                For q in the xy plane it is the active stress of the director turned by -45
+	                degrees, so a +1/2 defect self-propels at -atan(chiral_activity/activity) from its
+	                axis (clockwise for chiral_activity>0, extensile). Checked by tests/test_active.cpp.
 	With the flow, the snapshots have three more columns, ux,uy,uz: the velocity (nm/us) of the
 	written state. Without it they are unchanged. The flow changes the dynamics, not the equilibrium states, so it needs a time
 	integrator (DP5, RK2, Euler), not FIRE.

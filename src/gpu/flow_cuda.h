@@ -152,6 +152,7 @@ class FlowCuda
     P.eta=sim_param->viscosity;
     P.xi=sim_param->xi;
     P.zeta=sim_param->activity;
+    P.zeta_c=sim_param->chiral_activity;
     CUDA_CHECK(cudaMalloc(&sigma, 9*n*sizeof(double)));
     CUDA_CHECK(cudaMalloc(&u, 3*n*sizeof(double)));
     CUDA_CHECK(cudaMalloc(&fk, 3*n*sizeof(cufftDoubleComplex)));

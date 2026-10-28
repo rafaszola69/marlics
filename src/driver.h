@@ -138,6 +138,7 @@ struct Simulation_Parameters
   double xi=0.;             /* flow-aligning parameter (no default: aligning or tumbling depends on it) */
   bool xi_set=false;
   double activity=0.;       /* active stress -activity*q (10^6 Pa); needs the flow */
+  double chiral_activity=0.; /* chiral active stress -chiral_activity*(eps.q-q.eps)/2, eps_ij=eps_ijz (10^6 Pa) */
   double wall_velocity[3]={0.,0.,0.};  /* velocity of the upper wall (channel, slab), nm/us */
   int flow_solver=0;        /* confined geometries: 0 automatic, 1 direct, 2 iterative (flow_confined.h) */
   //Surface sites: "local" relaxes them with the local boundary condition (one-sided normal

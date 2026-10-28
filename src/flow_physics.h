@@ -20,6 +20,7 @@ struct FlowParams
   double eta;   //isotropic viscosity (Pa s)
   double xi;    //flow-aligning parameter
   double zeta;  //activity: active stress -zeta*q (10^6 Pa)
+  double zeta_c;//chiral activity: active stress -zeta_c*(eps.q-q.eps)/2, eps_ij=eps_ijz (10^6 Pa)
 };
 
 //Host only: whether the liquid crystal aligns with a shear flow, and at which angle from the flow
@@ -61,8 +62,12 @@ MARLICS_HD inline void full_tensor(const double * v, double M[3][3])
 }
 
 //Stress at site s (sigma[3*i+j], force density f_i = d_j sigma_ij), from Q and k=Lambda*H at s:
-//  sigma = -xi (h A + A h) + 2 xi A (q:h) - T + q h - h q - zeta q,   A=q+I/3,
-//  T_ij = d_i Q_c df/d(d_j Q_c) (distortion stress; isotropic parts go into the pressure).
+//  sigma = -xi (h A + A h) + 2 xi A (q:h) - T + q h - h q - zeta q - zeta_c (eps q - q eps)/2,
+//  A=q+I/3, T_ij = d_i Q_c df/d(d_j Q_c) (distortion stress; isotropic parts go into the pressure).
+//The chiral active stress (Hoffmann, Schakenraad, Merks and Giomi, Soft Matter 16, 764 (2020):
+//-2 tau eps.Q) is symmetric, with eps_ij=eps_ijz (eps_xy=1) the rotation about z: for q in the xy
+//plane it is -zeta_c eps.q, the stress -zeta_c q of the director turned by -45 degrees, so a +1/2
+//defect self-propels at -atan(zeta_c/zeta) from its axis.
 MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, const double * Qij, const double * k_i, int s, double sigma[9])
 {
   double dQ[15], g[15], q[3][3], h[3][3], A[3][3], qh=0;
@@ -91,7 +96,9 @@ MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, co
             qhm+=q[i][l]*h[l][j]; hq+=h[i][l]*q[l][j];
           }
         for(int c=0; c<5; c++) T+=dQ[5*i+c]*g[5*j+c];
-        sigma[3*i+j]=-F.xi*(hA+Ah)+2*F.xi*A[i][j]*qh-T+qhm-hq-F.zeta*q[i][j];
+        //(eps q)_ij - (q eps)_ij with eps_01=1, eps_10=-1
+        const double eq=(i==0 ? q[1][j] : i==1 ? -q[0][j] : 0.)-(j==0 ? -q[i][1] : j==1 ? q[i][0] : 0.);
+        sigma[3*i+j]=-F.xi*(hA+Ah)+2*F.xi*A[i][j]*qh-T+qhm-hq-F.zeta*q[i][j]-0.5*F.zeta_c*eq;
       }
 }
 

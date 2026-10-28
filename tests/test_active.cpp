@@ -7,6 +7,9 @@
 //    not: velocity at the core from the active stress in a window around each defect;
 //  - in 3D (no plane confinement) an out-of-plane bend perturbation, n=(cos,0,sin), grows for
 //    zeta>0 and the flow has a z component.
+// Chiral activity (-zeta_c (eps q - q eps)/2):
+//  - its flow is the active flow -zeta q of the director turned by -45 degrees about z (exact);
+//  - a +1/2 defect self-propels at -atan(zeta_c/zeta) from its axis, a -1/2 does not.
 #include "driver.h"
 #include "geometry.h"
 #include "integrator.h"
@@ -114,7 +117,7 @@ static void instabilities()
 }
 
 //Velocity at a defect core due to the active stress in a Gaussian window (radius R sites) around it.
-static void core_velocity(driver * d, double x0, double y0, double zeta, double R, double u[2])
+static void core_velocity(driver * d, double x0, double y0, double zeta, double R, double u[2], double zeta_c=0)
 {
   GEOMETRY * g=d->LcS_Geometry;
   const int Nx=g->Nx, Ny=g->Ny;
@@ -126,7 +129,8 @@ static void core_velocity(driver * d, double x0, double y0, double zeta, double 
       const long s=(long)j*Nx+i;
       const double w=exp(-((i-x0)*(i-x0)+(j-y0)*(j-y0))/(2*R*R));
       const double * Q=&d->Qij[5*s];
-      sxx[s]=-zeta*w*2./3.*Q[0]; sxy[s]=-zeta*w*2./3.*Q[1]; syy[s]=-zeta*w*2./3.*Q[3];
+      sxx[s]=-w*2./3.*(zeta*Q[0]+zeta_c*Q[1]); sxy[s]=-w*2./3.*(zeta*Q[1]+zeta_c*0.5*(Q[3]-Q[0]));
+      syy[s]=-w*2./3.*(zeta*Q[3]-zeta_c*Q[1]);
     }
   for(int j=0;j<Ny;j++) for(int i=0;i<Nx;i++)
     {
@@ -159,6 +163,61 @@ static void self_propulsion()
   check("+1/2, contractile: opposite direction", upc[0]<0, "%.3g", upc[0]);
   const double ratio=sqrt(um[0]*um[0]+um[1]*um[1])/fabs(up[0]);
   check("-1/2: no self-propulsion, |u(-1/2)|/|u(+1/2)|", ratio<0.05, "%.1e", ratio);
+  delete d;
+}
+
+//Turns the director of every site by beta about z (Q -> R Q R^T).
+static void rotate_q(driver * d, double beta)
+{
+  GEOMETRY * g=d->LcS_Geometry;
+  const long n=(long)g->Nx*g->Ny*g->Nz;
+  const double c=cos(beta), s=sin(beta), R[3][3]={{c,-s,0},{s,c,0},{0,0,1}};
+  for(long i=0;i<n;i++)
+    {
+      double * v=&d->Qij[5*i];
+      const double Q[3][3]={{v[0],v[1],v[2]},{v[1],v[3],v[4]},{v[2],v[4],-v[0]-v[3]}};
+      double P[3][3];
+      for(int a=0;a<3;a++) for(int b=0;b<3;b++)
+        {
+          P[a][b]=0;
+          for(int k=0;k<3;k++) for(int l=0;l<3;l++) P[a][b]+=R[a][k]*Q[k][l]*R[b][l];
+        }
+      v[0]=P[0][0]; v[1]=P[0][1]; v[2]=P[0][2]; v[3]=P[1][1]; v[4]=P[1][2];
+    }
+}
+
+static void chirality()
+{
+  //active parts of the flow: chiral (zeta_c=z) of the pair, achiral (zeta=z) of the turned pair
+  std::vector<double> u[4];
+  for(int c=0;c<4;c++)
+    {
+      driver * d=setup([&](Simulation_Parameters& p){
+          if(c==1) p.chiral_activity=0.02;
+          if(c==3) p.activity=0.02; });
+      if(c>=2) rotate_q(d,-M_PI/4);
+      u[c]=velocity(d);
+      delete d;
+    }
+  double err=0, m=0;
+  for(size_t i=0;i<u[0].size();i++)
+    {
+      err=fmax(err,fabs((u[1][i]-u[0][i])-(u[3][i]-u[2][i])));
+      m=fmax(m,fabs(u[1][i]-u[0][i]));
+    }
+  check("chiral flow = active flow of the director turned by -45 deg", err/m<1e-10, "%.1e", err/m);
+
+  driver * d=setup([](Simulation_Parameters& p){ p.Nx=p.Ny=128;
+                                                 p.defect_x={32.5,96.5}; p.defect_y={64.5,64.5}; });
+  double up[2], uc[2], um[2];
+  core_velocity(d,32.5,64.5,0.01,8,up,0.01);
+  core_velocity(d,32.5,64.5,0.,8,uc,0.01);
+  core_velocity(d,96.5,64.5,0.01,8,um,0.01);
+  const double tilt=atan2(up[1],up[0])*180/M_PI;
+  check("+1/2, zeta=zeta_c=0.01: direction from its axis (deg, -45)", fabs(tilt+45)<1, "%.2f", tilt);
+  check("+1/2, chiral only: moves along -y (perpendicular to its axis)", uc[1]<0 && fabs(uc[0])<1e-3*fabs(uc[1]), "%.3g", uc[1]);
+  const double ratio=sqrt(um[0]*um[0]+um[1]*um[1])/sqrt(up[0]*up[0]+up[1]*up[1]);
+  check("-1/2 with chiral activity: no self-propulsion", ratio<0.05, "%.1e", ratio);
   delete d;
 }
 
@@ -213,6 +272,7 @@ int main()
   linearity();
   instabilities();
   self_propulsion();
+  chirality();
   bend_3d();
   return failed ? 1 : 0;
 }

@@ -142,6 +142,8 @@ int main()
   compare_relaxation("tests/inputs/flow_pair.txt","DP5");
   compare_flow("tests/inputs/active_pair.txt");
   compare_relaxation("tests/inputs/active_pair.txt","DP5");
+  compare_flow("tests/inputs/active_chiral_pair.txt");
+  compare_relaxation("tests/inputs/active_chiral_pair.txt","DP5");
   compare_flow("tests/inputs/active_3d.txt");
   compare_relaxation("tests/inputs/active_3d.txt","DP5");
   compare_flow("tests/inputs/flow_channel_shear.txt");

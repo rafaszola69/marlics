@@ -23,6 +23,7 @@ class FlowCpu
     P.eta=sim_param->viscosity;
     P.xi=sim_param->xi;
     P.zeta=sim_param->activity;
+    P.zeta_c=sim_param->chiral_activity;
     int axis;
     const double * U=sim_param->wall_velocity;
     if(WallStokes::detect(L,axis))
