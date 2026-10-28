@@ -146,6 +146,8 @@ Backflow ("flow stokes" in the input file):
 	                For q in the xy plane it is the active stress of the director turned by -45
 	                degrees, so a +1/2 defect self-propels at -atan(chiral_activity/activity) from its
 	                axis (clockwise for chiral_activity>0, extensile). Checked by tests/test_active.cpp.
+	    elastic_stress (optional, default 1) 0 drops the passive (elastic and flow-alignment) stress
+	                from the flow, which is then driven by the active stress only.
 	With the flow, the snapshots have three more columns, ux,uy,uz: the velocity (nm/us) of the
 	written state. Without it they are unchanged. The flow changes the dynamics, not the equilibrium states, so it needs a time
 	integrator (DP5, RK2, Euler), not FIRE.

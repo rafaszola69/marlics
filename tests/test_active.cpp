@@ -7,6 +7,7 @@
 //    not: velocity at the core from the active stress in a window around each defect;
 //  - in 3D (no plane confinement) an out-of-plane bend perturbation, n=(cos,0,sin), grows for
 //    zeta>0 and the flow has a z component.
+//  - with elastic_stress 0 only the active stress drives the flow.
 // Chiral activity (-zeta_c (eps q - q eps)/2):
 //  - its flow is the active flow -zeta q of the director turned by -45 degrees about z (exact);
 //  - a +1/2 defect self-propels at -atan(zeta_c/zeta) from its axis, a -1/2 does not.
@@ -72,6 +73,21 @@ static void linearity()
       m=fmax(m,fabs(u[2][i]-u[0][i]));
     }
   check("active flow linear in zeta: |u(2z)-u(0)-2(u(z)-u(0))|/max", err/m<1e-10, "%.1e", err/m);
+  //elastic_stress 0: no flow without activity, and the active flow alone, u(z)-u(0), with activity
+  driver * d=setup([&](Simulation_Parameters& p){ p.elastic_stress=0; });
+  std::vector<double> u0=velocity(d);
+  delete d;
+  d=setup([&](Simulation_Parameters& p){ p.elastic_stress=0; p.activity=zeta[1]; });
+  std::vector<double> u1=velocity(d);
+  delete d;
+  double e0=0, e1=0;
+  for(size_t i=0;i<u0.size();i++)
+    {
+      e0=fmax(e0,fabs(u0[i]));
+      e1=fmax(e1,fabs(u1[i]-(u[1][i]-u[0][i])));
+    }
+  check("elastic_stress 0, zeta=0: no flow, max|u| / max active", e0/m<1e-12, "%.1e", e0/m);
+  check("elastic_stress 0: flow = active part, error / max", e1/m<1e-10, "%.1e", e1/m);
 }
 
 //Amplitude ratio of a director perturbation (bend: varying along the director x; splay: along y).

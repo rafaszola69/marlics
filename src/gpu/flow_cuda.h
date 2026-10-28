@@ -153,6 +153,7 @@ class FlowCuda
     P.xi=sim_param->xi;
     P.zeta=sim_param->activity;
     P.zeta_c=sim_param->chiral_activity;
+    P.el=sim_param->elastic_stress;
     CUDA_CHECK(cudaMalloc(&sigma, 9*n*sizeof(double)));
     CUDA_CHECK(cudaMalloc(&u, 3*n*sizeof(double)));
     CUDA_CHECK(cudaMalloc(&fk, 3*n*sizeof(cufftDoubleComplex)));

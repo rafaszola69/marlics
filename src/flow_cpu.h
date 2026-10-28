@@ -24,6 +24,7 @@ class FlowCpu
     P.xi=sim_param->xi;
     P.zeta=sim_param->activity;
     P.zeta_c=sim_param->chiral_activity;
+    P.el=sim_param->elastic_stress;
     int axis;
     const double * U=sim_param->wall_velocity;
     if(WallStokes::detect(L,axis))
