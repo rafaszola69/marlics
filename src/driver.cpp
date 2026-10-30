@@ -745,6 +745,18 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
           garbage=fgets(garbage,400,input_file);
         }
+    else if ( strcasecmp(parser,"xi_wall") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.xi_wall);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"xi_wall_width") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.xi_wall_width);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
     else if ( strcasecmp(parser,"flow_solver") == 0 )
         {
           char kind[20];

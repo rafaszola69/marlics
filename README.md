@@ -148,6 +148,9 @@ Backflow ("flow stokes" in the input file):
 	                axis (clockwise for chiral_activity>0, extensile). Checked by tests/test_active.cpp.
 	    elastic_stress (optional, default 1) 0 drops the passive (elastic and flow-alignment) stress
 	                from the flow, which is then driven by the active stress only.
+	    xi_wall, xi_wall_width (optional) flow-aligning parameter xi_wall at the bulk sites within
+	                xi_wall_width (nm) of a surface site, xi elsewhere (a sharp interface); CPU only.
+	                Checked by tests/test_active.cpp.
 	With the flow, the snapshots have three more columns, ux,uy,uz: the velocity (nm/us) of the
 	written state. Without it they are unchanged. The flow changes the dynamics, not the equilibrium states, so it needs a time
 	integrator (DP5, RK2, Euler), not FIRE.

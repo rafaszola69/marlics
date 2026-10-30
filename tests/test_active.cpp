@@ -8,6 +8,8 @@
 //  - in 3D (no plane confinement) an out-of-plane bend perturbation, n=(cos,0,sin), grows for
 //    zeta>0 and the flow has a z component.
 //  - with elastic_stress 0 only the active stress drives the flow.
+//  - xi_wall: a layer wider than the disk is the same as xi_wall everywhere, xi_wall = xi changes
+//    nothing, and a thin layer gives a flow between the two uniform ones.
 // Chiral activity (-zeta_c (eps q - q eps)/2):
 //  - its flow is the active flow -zeta q of the director turned by -45 degrees about z (exact);
 //  - a +1/2 defect self-propels at -atan(zeta_c/zeta) from its axis, a -1/2 does not.
@@ -33,10 +35,11 @@ static void check(const char * what, bool ok, const char * fmt, double value)
   failed+=!ok;
 }
 
-static driver * setup(std::function<void(Simulation_Parameters&)> change=NULL)
+static driver * setup(std::function<void(Simulation_Parameters&)> change=NULL, const char * input="tests/inputs/flow_pair.txt")
 {
   driver * d=new driver;
-  char name[]="tests/inputs/flow_pair.txt";
+  char name[200];
+  strcpy(name,input);
   d->parse_input_file(name);
   if(change) change(d->sim_param);
   d->setup_LC();
@@ -88,6 +91,38 @@ static void linearity()
     }
   check("elastic_stress 0, zeta=0: no flow, max|u| / max active", e0/m<1e-12, "%.1e", e0/m);
   check("elastic_stress 0: flow = active part, error / max", e1/m<1e-10, "%.1e", e1/m);
+}
+
+//xi_wall in a disk (planar anchoring, random director, extensile): the flow and the flow terms of
+//dQ/dt, which both depend on xi.
+static void wall_layer()
+{
+  auto run=[&](double xi, double xw, double w){
+    driver * d=setup([&](Simulation_Parameters& p){ p.activity=0.01; p.xi=xi; p.xi_wall=xw; p.xi_wall_width=w;
+                                                    strcpy(p.initial_conditions,"random"); },
+                     "tests/inputs/flow_disk.txt");
+    GEOMETRY * g=d->LcS_Geometry;
+    const long n=(long)g->Nx*g->Ny*g->Nz;
+    std::vector<double> k(5*n);
+    CpuExec plain(g);
+    plain.fill_ki(k.data(),d->Qij);
+    FlowCpu flow(g,&d->sim_param);
+    flow.add(k.data(),d->Qij);
+    std::vector<double> r(flow.velocity(),flow.velocity()+3*n);
+    r.insert(r.end(),k.begin(),k.end());
+    delete d;
+    return r; };
+  auto diff=[](const std::vector<double>& a, const std::vector<double>& b){
+    double e=0, m=0;
+    for(size_t i=0;i<a.size();i++) { e=fmax(e,fabs(a[i]-b[i])); m=fmax(m,fabs(a[i])); }
+    return e/m; };
+  std::vector<double> u07=run(0.7,0,0), u1=run(1,0,0);
+  const double e_all=diff(u1,run(0.7,1,1e6)), e_same=diff(u07,run(0.7,0.7,20));
+  std::vector<double> ul=run(0.7,1,20);
+  const double d07=diff(u07,ul), d1=diff(u1,ul), d=diff(u07,u1);
+  check("xi_wall, layer wider than the disk = xi_wall everywhere", e_all<1e-13, "%.1e", e_all);
+  check("xi_wall = xi: unchanged", e_same<1e-13, "%.1e", e_same);
+  check("thin layer: between the uniform cases, |r - r(0.7)| / |r(1) - r(0.7)|", d07>1e-3*d && d07<d && d1<d, "%.2f", d07/d);
 }
 
 //Amplitude ratio of a director perturbation (bend: varying along the director x; splay: along y).
@@ -286,6 +321,7 @@ int main()
 {
   fprintf(stderr,"test_active: activity\n");
   linearity();
+  wall_layer();
   instabilities();
   self_propulsion();
   chirality();

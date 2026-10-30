@@ -22,7 +22,10 @@ struct FlowParams
   double zeta;  //activity: active stress -zeta*q (10^6 Pa)
   double zeta_c;//chiral activity: active stress -zeta_c*(eps.q-q.eps)/2, eps_ij=eps_ijz (10^6 Pa)
   double el;    //1, or 0 to drop the passive (elastic and flow-alignment) stress
+  const double * xis; //flow-aligning parameter per site (xi_wall near the walls), or NULL: xi everywhere
 };
+
+MARLICS_HD inline double site_xi(const FlowParams& F, long s) { return F.xis ? F.xis[s] : F.xi; }
 
 //Host only: whether the liquid crystal aligns with a shear flow, and at which angle from the flow
 //direction (cos 2 theta = 3S/((2+S) xi), Denniston, Orlandini and Yeomans 2001), or tumbles.
@@ -73,6 +76,7 @@ MARLICS_HD inline void full_tensor(const double * v, double M[3][3])
 MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, const double * Qij, const double * k_i, int s, double sigma[9])
 {
   double dQ[15], g[15], q[3][3], h[3][3], A[3][3], qh=0;
+  const double xi=site_xi(F,s);
   central_gradient(L,Qij,5,s,dQ);
   ldg_gradient_derivative(L.bulk,&Qij[5*s],dQ,g);
 
@@ -100,7 +104,7 @@ MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, co
         for(int c=0; c<5; c++) T+=dQ[5*i+c]*g[5*j+c];
         //(eps q)_ij - (q eps)_ij with eps_01=1, eps_10=-1
         const double eq=(i==0 ? q[1][j] : i==1 ? -q[0][j] : 0.)-(j==0 ? -q[i][1] : j==1 ? q[i][0] : 0.);
-        sigma[3*i+j]=F.el*(-F.xi*(hA+Ah)+2*F.xi*A[i][j]*qh-T+qhm-hq)-F.zeta*q[i][j]-0.5*F.zeta_c*eq;
+        sigma[3*i+j]=F.el*(-xi*(hA+Ah)+2*xi*A[i][j]*qh-T+qhm-hq)-F.zeta*q[i][j]-0.5*F.zeta_c*eq;
       }
 }
 
@@ -178,6 +182,7 @@ MARLICS_HD inline void stokes_mode(const LatticeView& L, double eta, int m0, int
 MARLICS_HD inline void site_flow_rhs(const LatticeView& L, const FlowParams& F, const double * Qij, const double * u, int s, double out[5])
 {
   double dQ[15], du[9], W[3][3], D[3][3], O[3][3], q[3][3], A[3][3], qW=0;
+  const double xi=site_xi(F,s);
   central_gradient(L,Qij,5,s,dQ);
   central_gradient(L,u,3,s,du);                       //du[3*b+a] = d_b u_a
   full_tensor(&Qij[5*s],q);
@@ -199,9 +204,9 @@ MARLICS_HD inline void site_flow_rhs(const LatticeView& L, const FlowParams& F, 
   for(int c=0; c<5; c++)
     {
       const int a=ia[c], b=ib[c];
-      double S=-2*F.xi*A[a][b]*qW;
+      double S=-2*xi*A[a][b]*qW;
       for(int l=0; l<3; l++)
-        S+=(F.xi*D[a][l]+O[a][l])*A[l][b]+A[a][l]*(F.xi*D[l][b]-O[l][b]);
+        S+=(xi*D[a][l]+O[a][l])*A[l][b]+A[a][l]*(xi*D[l][b]-O[l][b]);
       const double adv=us[0]*dQ[c]+us[1]*dQ[5+c]+us[2]*dQ[10+c];
       out[c]=-adv+1.5*S;
     }

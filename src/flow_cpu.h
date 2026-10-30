@@ -25,6 +25,8 @@ class FlowCpu
     P.zeta=sim_param->activity;
     P.zeta_c=sim_param->chiral_activity;
     P.el=sim_param->elastic_stress;
+    P.xis=NULL;
+    if(sim_param->xi_wall_width>0) wall_layer(sim_param->xi_wall,sim_param->xi_wall_width);
     int axis;
     const double * U=sim_param->wall_velocity;
     if(WallStokes::detect(L,axis))
@@ -52,6 +54,11 @@ class FlowCpu
     std::cout << "Backflow: Stokes flow " << (walls ? "between walls" : (confined ? "in a confined geometry" : "in a periodic box (FFT)"))
               << ", viscosity=" << P.eta << " Pa s, xi=" << P.xi << ".\n";
     flow_alignment_report(P.xi,L.bulk.S_eq);
+    if(P.xis)
+      {
+        std::cout << "  xi=" << xi_wall << " at the bulk sites within " << xi_wall_width << " nm of a surface site (" << n_wall << " sites):\n  ";
+        flow_alignment_report(xi_wall,L.bulk.S_eq);
+      }
   }
 
   ~FlowCpu() { delete walls; delete confined; }
@@ -227,6 +234,40 @@ class FlowCpu
 
   const LatticeView L;
   FlowParams P;
+  std::vector<double> xis;
+  double xi_wall=0, xi_wall_width=0;
+  long n_wall=0;
+
+  //Flow-aligning parameter xw at the bulk sites within distance w (nm) of a surface site, P.xi at the
+  //others (a sharp interface between two materials that differ only in xi).
+  void wall_layer(double xw, double w)
+  {
+    xi_wall=xw; xi_wall_width=w;
+    if(L.n_surface==0)
+      {
+        std::cout << "xi_wall_width needs a geometry with surface sites.\nAborting the program.\n";
+        exit(1);
+      }
+    const double h[3]={1/L.d_1[0],1/L.d_1[1],1/L.d_1[2]};
+    xis.assign(n,P.xi);
+    #pragma omp parallel for schedule(static) reduction(+:n_wall)
+    for(long s=0; s<n; s++)
+      {
+        if(L.point_type[s]!=1) continue;
+        const long c[3]={s%L.Nx, (s/L.Nx)%L.Ny, s/((long)L.Nx*L.Ny)};
+        double d2=1e300;
+        for(int k=0; k<L.n_surface; k++)
+          {
+            const long t=L.surface[k].site;
+            const long e[3]={t%L.Nx, (t/L.Nx)%L.Ny, t/((long)L.Nx*L.Ny)};
+            double r2=0;
+            for(int a=0; a<3; a++) r2+=(c[a]-e[a])*h[a]*(c[a]-e[a])*h[a];
+            d2=fmin(d2,r2);
+          }
+        if(d2<=w*w) { xis[s]=xw; n_wall++; }
+      }
+    P.xis=xis.data();
+  }
   const long n;
   WallStokes * walls;
   ConfinedStokes * confined;
