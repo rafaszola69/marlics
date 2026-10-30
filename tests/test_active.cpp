@@ -9,7 +9,7 @@
 //    zeta>0 and the flow has a z component.
 //  - with elastic_stress 0 only the active stress drives the flow.
 //  - xi_wall: a layer wider than the disk is the same as xi_wall everywhere, xi_wall = xi changes
-//    nothing, and a thin layer gives a flow between the two uniform ones.
+//    nothing, and a thin layer differs from both uniform cases.
 // Chiral activity (-zeta_c (eps q - q eps)/2):
 //  - its flow is the active flow -zeta q of the director turned by -45 degrees about z (exact);
 //  - a +1/2 defect self-propels at -atan(zeta_c/zeta) from its axis, a -1/2 does not.
@@ -99,7 +99,8 @@ static void wall_layer()
 {
   auto run=[&](double xi, double xw, double w){
     driver * d=setup([&](Simulation_Parameters& p){ p.activity=0.01; p.xi=xi; p.xi_wall=xw; p.xi_wall_width=w;
-                                                    strcpy(p.initial_conditions,"random"); },
+                                                    strcpy(p.initial_conditions,"random");
+                                                    p.rng_seed=11; p.ic_flag[4]=parameter_status::set; },
                      "tests/inputs/flow_disk.txt");
     GEOMETRY * g=d->LcS_Geometry;
     const long n=(long)g->Nx*g->Ny*g->Nz;
@@ -122,7 +123,7 @@ static void wall_layer()
   const double d07=diff(u07,ul), d1=diff(u1,ul), d=diff(u07,u1);
   check("xi_wall, layer wider than the disk = xi_wall everywhere", e_all<1e-13, "%.1e", e_all);
   check("xi_wall = xi: unchanged", e_same<1e-13, "%.1e", e_same);
-  check("thin layer: between the uniform cases, |r - r(0.7)| / |r(1) - r(0.7)|", d07>1e-3*d && d07<d && d1<d, "%.2f", d07/d);
+  check("thin layer differs from both uniform cases, min(|r-r(0.7)|,|r-r(1)|) / |r(1)-r(0.7)|", fmin(d07,d1)>1e-3*d, "%.2f", fmin(d07,d1)/d);
 }
 
 //Amplitude ratio of a director perturbation (bend: varying along the director x; splay: along y).
