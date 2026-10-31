@@ -51,6 +51,8 @@ struct Simulation_Parameters
   /*Ellipse geometry: semi-axes along x and y (default Nx*dx/2, Ny*dy/2) */
   double ellipse_a=0;    /* 10^-9 m */
   double ellipse_b=0;    /* 10^-9 m */
+  /*Disk geometry: fraction of the perimeter, an arc centred on +x, that belongs to boundary 1 (0: one boundary) */
+  double hybrid_arc=0;
   
   //Lc Parameters:
 

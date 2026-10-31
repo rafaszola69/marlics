@@ -816,6 +816,12 @@ int driver::parse_input_file(char input_name[])
           error_check(error_handler,parser);
           garbage=fgets(garbage,400,input_file);
         }
+    else if ( strcasecmp(parser,"hybrid_arc") == 0 )
+        {
+          error_handler=fscanf(input_file,"%lf",&sim_param.hybrid_arc);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
     else if ( strcasecmp(parser,"plane_confinement") == 0 )
         {
           error_handler=fscanf(input_file,"%lf",&sim_param.plane_confinement);

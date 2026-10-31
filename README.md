@@ -91,7 +91,8 @@ Two-dimensional simulations ("dimension 2" in the input file):
 	A single layer (Nz=1, set automatically) with no variation along z. The Q tensor keeps its five
 	components, so the physics is the 3D one (chirality, out-of-plane director): it is exactly the
 	z-invariant 3D system (tests/test_2d.cpp). Energies refer to a slice of thickness dz (default dx).
-	Geometries: disk (alias cylinder; Nx=Ny), ellipse (semi-axes ellipse_a along x and ellipse_b
+	Geometries: disk (alias cylinder; Nx=Ny; hybrid_arc f gives the arc |phi| < pi f around +x to
+	boundary 1, so that the two parts take their own anchoring_type and Wo1), ellipse (semi-axes ellipse_a along x and ellipse_b
 	along y in nm, default Nx*dx/2 and Ny*dy/2; with a=b it is the disk site by site; the lattice must
 	satisfy Nx*dx >= 2a, Ny*dy >= 2b), channel (walls at y=0 and y=Ny-1, periodic x),
 	box (walls x=0,Nx-1 -> boundary 0, y=0,Ny-1 -> boundary 1), bulk (periodic) and custom.

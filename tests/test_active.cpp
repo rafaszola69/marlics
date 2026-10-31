@@ -10,6 +10,8 @@
 //  - with elastic_stress 0 only the active stress drives the flow.
 //  - xi_wall: a layer wider than the disk is the same as xi_wall everywhere, xi_wall = xi changes
 //    nothing, and a thin layer differs from both uniform cases.
+//  - hybrid_arc (disk): boundary 1 is the arc |phi| < pi*hybrid_arc around +x; with the same
+//    anchoring on both parts nothing changes, and homeotropic boundary 1 changes the flow.
 // Chiral activity (-zeta_c (eps q - q eps)/2):
 //  - its flow is the active flow -zeta q of the director turned by -45 degrees about z (exact);
 //  - a +1/2 defect self-propels at -atan(zeta_c/zeta) from its axis, a -1/2 does not.
@@ -318,11 +320,52 @@ static void bend_3d()
   check("3D out-of-plane bend, passive: decays", r[1]<1, "%.3g", r[1]);
 }
 
+//Hybrid disk: velocity and dQ/dt for a random director; boundary 1 with anchoring a1 (Wo1 w1).
+static void hybrid_disk()
+{
+  int n1=0, n_s=0, wrong=0;
+  auto run=[&](double arc, const char * a1, double w1){
+    driver * d=setup([&](Simulation_Parameters& p){ p.activity=0.01; p.hybrid_arc=arc;
+                                                    p.anchoring_type[1]=a1; p.Wo1[1]=w1;
+                                                    strcpy(p.initial_conditions,"random");
+                                                    p.rng_seed=11; p.ic_flag[4]=parameter_status::set; },
+                     "tests/inputs/flow_disk.txt");
+    GEOMETRY * g=d->LcS_Geometry;
+    const long n=(long)g->Nx*g->Ny*g->Nz;
+    if(arc>0)
+      {
+        const LatticeView L=g->view();
+        n_s=L.n_surface; n1=wrong=0;
+        for(int q=0;q<L.n_surface;q++) { n1+=L.surface[q].bc; wrong+= L.surface[q].bc==1 && L.surface[q].v[0]<0; }
+      }
+    std::vector<double> k(5*n);
+    CpuExec plain(g);
+    plain.fill_ki(k.data(),d->Qij);
+    FlowCpu flow(g,&d->sim_param);
+    flow.add(k.data(),d->Qij);
+    std::vector<double> r(flow.velocity(),flow.velocity()+3*n);
+    r.insert(r.end(),k.begin(),k.end());
+    delete d;
+    return r; };
+  auto diff=[](const std::vector<double>& a, const std::vector<double>& b){
+    double e=0, m=0;
+    for(size_t i=0;i<a.size();i++) { e=fmax(e,fabs(a[i]-b[i])); m=fmax(m,fabs(a[i])); }
+    return e/m; };
+  std::vector<double> u0=run(0,"fg",1);
+  const double e_same=diff(u0,run(0.5,"fg",1));
+  check("hybrid_arc 0.5: sites of boundary 1 / surface sites", fabs((double)n1/n_s-0.5)<0.05, "%.3f", (double)n1/n_s);
+  check("hybrid_arc 0.5: boundary 1 sites with x<0", wrong==0, "%.0f", wrong);
+  check("hybrid_arc, same anchoring on both parts: unchanged", e_same<1e-13, "%.1e", e_same);
+  const double e_h=diff(u0,run(0.5,"homeotropic",10));
+  check("hybrid_arc, homeotropic boundary 1: flow and dQ/dt change", e_h>1e-3, "%.2f", e_h);
+}
+
 int main()
 {
   fprintf(stderr,"test_active: activity\n");
   linearity();
   wall_layer();
+  hybrid_disk();
   instabilities();
   self_propulsion();
   chirality();

@@ -35,9 +35,15 @@ Geometry_Disk::Geometry_Disk(const struct Simulation_Parameters * sim_param) : G
 {
   geometry_pointer=&(*this);
   geometry_name="Disk";
-  number_of_boundaries=1;
+  arc=sim_param->hybrid_arc;
+  if(arc<0 || arc>=1)
+    {
+      std::cout << "hybrid_arc must be in [0,1).\nAborting the program.\n";
+      exit(1);
+    }
+  number_of_boundaries= arc>0 ? 2 : 1;
   bc_conditions=std::vector<class BOUNDARY *>(number_of_boundaries);
-  boundary_needed_to_be_defined="0";
+  boundary_needed_to_be_defined= arc>0 ? "0 and 1" : "0";
 
   if(Nx!=Ny || sim_param->dx!=sim_param->dy)
     {
@@ -84,7 +90,7 @@ int Geometry_Disk::surface_site(int i, int j, int k, double v[3], double & area)
   v[1]=y/rr;
   v[2]=0;
   area=dA;
-  return 0;
+  return arc>0 && fabs(atan2(y,x))<M_PI*arc ? 1 : 0;
 }
 
 //One-sided differences towards the axis of the disk.

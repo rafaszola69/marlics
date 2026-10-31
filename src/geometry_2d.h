@@ -6,7 +6,8 @@
 #include "driver.h"
 #include "geometry.h"
 
-//Disk of radius R (2D droplet; infinite cylinder along z in 3D). One boundary (0), radial normal.
+//Disk of radius R (2D droplet; infinite cylinder along z in 3D). One boundary (0), radial normal;
+//with hybrid_arc>0 the arc |phi|<pi*hybrid_arc (phi the polar angle from +x) is boundary 1.
 class Geometry_Disk : public GEOMETRY
 {
  public:
@@ -20,7 +21,7 @@ class Geometry_Disk : public GEOMETRY
 
  private:
 
-  double R_in, R_ex;
+  double R_in, R_ex, arc;
   const double HNx, HNy;
   virtual int * fill_point_type( void ) const ;
 };
