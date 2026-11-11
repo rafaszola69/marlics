@@ -203,6 +203,112 @@ void Geometry_Ellipse::surface_stencil(int i, int j, int k, int nm[3], int np[3]
   edge_stencil(N,periodic,low,high,i,j,k,nm,np);
 }
 
+//################################ Polygon ################################
+
+Geometry_Polygon::Geometry_Polygon(const struct Simulation_Parameters * sim_param) : GEOMETRY (sim_param),
+  HNx((Nx-1.)/2.), HNy((Ny-1.)/2.)
+{
+  geometry_pointer=&(*this);
+  geometry_name="Polygon";
+  number_of_boundaries=1;
+  bc_conditions=std::vector<class BOUNDARY *>(number_of_boundaries);
+  boundary_needed_to_be_defined="0";
+
+  n=sim_param->polygon_sides;
+  if(n<3)
+    {
+      std::cout << "The polygon geometry needs polygon_sides >= 3.\nAborting the program.\n";
+      exit(1);
+    }
+  if(Nx!=Ny || sim_param->dx!=sim_param->dy)
+    {
+      std::cout << "The polygon geometry needs Nx=Ny and dx=dy.\nAborting the program.\n";
+      exit(1);
+    }
+  //Circumradius HNx, the radius of the level set of the disk shell (R_in=HNx-0.5, R_ex=HNx+0.95).
+  apothem=HNx*cos(M_PI/n);
+  std::cout << "Regular polygon with " << n << " sides, circumradius " << HNx*sim_param->dx
+            << " nm, apothem " << apothem*sim_param->dx << " nm" << std::endl;
+
+  point_type=fill_point_type( );
+
+  //Every bulk site must have bulk or surface neighbours, diagonals included (mixed derivatives).
+  for(int j=0; j<Ny; j++)
+    for(int i=0; i<Nx; i++)
+      if(point_type[j*Nx+i]==1)
+        for(int dj=-1; dj<=1; dj++)
+          for(int di=-1; di<=1; di++)
+            if(point_type[(j+dj)*Nx+i+di]==0)
+              {
+                std::cout << "Polygon: bulk site (" << i << "," << j << ") touches an outside site.\nAborting the program.\n";
+                exit(1);
+              }
+
+  //Each surface site represents an equal share of the side (perimeter of the mid-shell polygon,
+  //at distance 0.225 like the mid-shell circle of the disk).
+  int n_surface=0;
+  for(int s=0; s<Nx*Ny*Nz; s++) if(point_type[s]>=2) n_surface++;
+  dA=2*n*(apothem+0.225)*tan(M_PI/n)*sim_param->dx*Nz*sim_param->dz/n_surface;
+  std::cout << "Surface area per surface site dA=" << dA << std::endl;
+}
+
+//Signed distance (lattice units) to the polygon: the largest distance to the lines of its sides,
+//exact inside and next to the sides (outside a vertex it is the distance to the mitred offset).
+double Geometry_Polygon::distance(double x, double y) const
+{
+  double d=-1e300;
+  for(int k=0; k<n; k++)
+    {
+      const double a=2*M_PI*(k+0.5)/n;
+      d=fmax(d,x*cos(a)+y*sin(a)-apothem);
+    }
+  return d;
+}
+
+int * Geometry_Polygon::fill_point_type( void ) const
+{
+  int * point_kind;
+  if((point_kind= (int *)calloc(Nx*Ny*Nz, sizeof(int)))==NULL){ERROr}
+
+  for(int k=0; k<Nz; k++)
+    for(int j=0; j<Ny; j++)
+      for(int i=0; i<Nx; i++)
+        {
+          const double d=distance(i-HNx,j-HNy);
+          point_kind[(k*Ny+j)*Nx+i]= d<-0.5 ? 1 : (d<=0.95 ? 2 : 0);
+        }
+  return point_kind;
+}
+
+int Geometry_Polygon::surface_site(int i, int j, int k, double v[3], double & area) const
+{
+  const double x=i-HNx, y=j-HNy;
+  //outward normal of the side whose line is farthest from (x, y) towards the outside; the bisector
+  //when two sides tie (a site on the bisector of a vertex)
+  double best=-1e300, nx=0, ny=0;
+  for(int kk=0; kk<n; kk++)
+    {
+      const double a=2*M_PI*(kk+0.5)/n, d=x*cos(a)+y*sin(a);
+      if(d>best+1e-9) { best=d; nx=cos(a); ny=sin(a); }
+      else if(d>best-1e-9) { nx+=cos(a); ny+=sin(a); }
+    }
+  const double norm=sqrt(nx*nx+ny*ny);
+  v[0]=nx/norm;
+  v[1]=ny/norm;
+  v[2]=0;
+  area=dA;
+  return 0;
+}
+
+//One-sided differences towards the centre, as in the disk (the polygon is convex and centred).
+void Geometry_Polygon::surface_stencil(int i, int j, int k, int nm[3], int np[3]) const
+{
+  const int N[3]={Nx,Ny,Nz};
+  const bool periodic[3]={false,false,true};
+  const bool low[2]={i<HNx, j<HNy}, high[2]={i>=HNx, j>=HNy};
+  edge_stencil(N,periodic,low,high,i,j,k,nm,np);
+}
+
 //################################ Channel ################################
 
 Geometry_Channel::Geometry_Channel(const struct Simulation_Parameters * sim_param) : GEOMETRY (sim_param)

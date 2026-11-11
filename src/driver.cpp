@@ -405,7 +405,7 @@ void driver::setup_Simulation(void)
              strcasecmp(sim_param.geometry,"wedge")==0 || strcasecmp(sim_param.geometry,"wedge2")==0 ) )
         {
           std::cout << "The " << sim_param.geometry << " geometry needs three dimensions.\n"
-                    << "In two dimensions use disk, ellipse, channel, box, bulk or custom.\nAborting the program.\n\n";
+                    << "In two dimensions use disk, ellipse, polygon, channel, box, bulk or custom.\nAborting the program.\n\n";
           exit(2);
         }
 
@@ -420,6 +420,10 @@ void driver::setup_Simulation(void)
       else if ( strcasecmp(sim_param.geometry,"ellipse") == 0 )
         {
           LcS_Geometry= new Geometry_Ellipse( & sim_param);
+        }
+      else if ( strcasecmp(sim_param.geometry,"polygon") == 0 )
+        {
+          LcS_Geometry= new Geometry_Polygon( & sim_param);
         }
       else if ( strcasecmp(sim_param.geometry,"channel") == 0 )
         {
@@ -831,6 +835,12 @@ int driver::parse_input_file(char input_name[])
     else if ( strcasecmp(parser,"ellipse_a") == 0 || strcasecmp(parser,"ellipse_b") == 0 )
         {
           error_handler=fscanf(input_file,"%lf", strcasecmp(parser,"ellipse_a") == 0 ? &sim_param.ellipse_a : &sim_param.ellipse_b);
+          error_check(error_handler,parser);
+          garbage=fgets(garbage,400,input_file);
+        }
+    else if ( strcasecmp(parser,"polygon_sides") == 0 )
+        {
+          error_handler=fscanf(input_file,"%d",&sim_param.polygon_sides);
           error_check(error_handler,parser);
           garbage=fgets(garbage,400,input_file);
         }

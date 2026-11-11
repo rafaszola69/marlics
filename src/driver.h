@@ -53,6 +53,8 @@ struct Simulation_Parameters
   double ellipse_b=0;    /* 10^-9 m */
   /*Disk geometry: fraction of the perimeter, an arc centred on +x, that belongs to boundary 1 (0: one boundary) */
   double hybrid_arc=0;
+  /*Polygon geometry: number of sides of the regular polygon inscribed in the circle of the disk (one vertex on +x) */
+  int polygon_sides=0;
   
   //Lc Parameters:
 

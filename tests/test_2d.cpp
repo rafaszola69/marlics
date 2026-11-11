@@ -4,6 +4,7 @@
 //  - with planar degenerate (fg) walls the director escapes along z, unless plane_confinement keeps
 //    it in the plane;
 //  - the ellipse with equal semi-axes is the disk;
+//  - the polygon with many sides has the sites of the disk;
 //  - the "defects" initial condition has the requested winding around each defect;
 //  - "cholesteric_2d" has the handedness preferred by the chiral term.
 #include "driver.h"
@@ -112,6 +113,20 @@ static void ellipse_is_disk()
   check("ellipse a=b: same sites as the disk", pt[0]==pt[1], "%g", 0.);
   check("ellipse a=b: same force as the disk", dk/mk<1e-12, "%.1e", dk/mk);
   check("ellipse a=b: same energy as the disk", de/me<1e-12, "%.1e", de/me);
+}
+
+//A polygon with many sides has the sites of the disk it is inscribed in.
+static void polygon_is_disk()
+{
+  std::vector<int> pt[2];
+  for(int c=0; c<2; c++)
+    {
+      driver * d=setup("tests/inputs/2d_disk.txt", [c](Simulation_Parameters& p){ if(c==1) { strcpy(p.geometry,"polygon"); p.polygon_sides=2000; } });
+      const long N=(long)d->sim_param.Nx*d->sim_param.Ny;
+      pt[c].assign(d->LcS_Geometry->point_type,d->LcS_Geometry->point_type+N);
+      delete d;
+    }
+  check("polygon with 2000 sides: same sites as the disk", pt[0]==pt[1], "%g", 0.);
 }
 
 static void relax(driver * d)
@@ -225,6 +240,8 @@ int main()
   z_invariance("tests/inputs/2d_disk.txt");
   z_invariance("tests/inputs/2d_ellipse.txt");
   ellipse_is_disk();
+  z_invariance("tests/inputs/2d_polygon.txt");
+  polygon_is_disk();
   z_invariance("tests/inputs/2d_channel.txt");
   z_invariance("tests/inputs/2d_box.txt");
   planar_escape(0);

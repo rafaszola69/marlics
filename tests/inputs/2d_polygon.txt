@@ -1,0 +1,38 @@
+# Two-dimensional hexagon inscribed in the 25-site disk (used by test_2d, test_surface_dynamics): every elastic term, chirality and plane confinement on
+dimension 2
+geometry polygon
+polygon_sides 6
+integrator FIRE
+Nx 25
+Ny 25
+dx 5.0
+dy 5.0
+dz 5.0
+a  0.086
+B -2.12
+C  1.74
+T  -1.0
+L1 6.0
+L2 3.0
+L3 2.0
+Ls 1.0
+Lq 5.0
+p0 60.0
+plane_confinement 0.02
+mu_1 0.3
+mu_1_s 3.0
+dt 0.001
+tf 1
+min_force 1e-4
+time_print_type linear
+timeprint 1
+timeprint_increase_factor 1
+initial_conditions random
+theta_i 45
+phi_i 45
+seed 99
+initial_output_file_number 0
+output_folder build
+anchoring_type 0 homeotropic
+Wo1 0 2.0
+run

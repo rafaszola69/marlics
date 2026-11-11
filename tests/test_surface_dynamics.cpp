@@ -134,6 +134,12 @@ int main()
   check("ellipse 70 x 45 nm, homeotropic, all terms", ell<1e-6, "%.2e", ell);
   const double ellfg=surface_gradient_error("tests/inputs/2d_ellipse.txt",[](Simulation_Parameters& p){ p.anchoring_type[0]="fg"; });
   check("ellipse, fg", ellfg<1e-6, "%.2e", ellfg);
+  const double hex=surface_gradient_error("tests/inputs/2d_polygon.txt",all_terms);
+  check("hexagon, homeotropic, all terms", hex<1e-6, "%.2e", hex);
+  const double sq=surface_gradient_error("tests/inputs/2d_polygon.txt",[](Simulation_Parameters& p){ p.anchoring_type[0]="fg"; p.polygon_sides=4; });
+  check("square (polygon), fg", sq<1e-6, "%.2e", sq);
+  const double tri=surface_gradient_error("tests/inputs/2d_polygon.txt",[](Simulation_Parameters& p){ p.anchoring_type[0]="fg"; p.polygon_sides=3; });
+  check("triangle (polygon), fg", tri<1e-6, "%.2e", tri);
   const double box=surface_gradient_error("tests/inputs/2d_box.txt",all_terms);
   check("box, fg and rp walls with corners, all terms", box<1e-6, "%.2e", box);
   const double fgdisk=surface_gradient_error("tests/inputs/flow_disk.txt",[](Simulation_Parameters& p){ strcpy(p.initial_conditions,"random"); });
