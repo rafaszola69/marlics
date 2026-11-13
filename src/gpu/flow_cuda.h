@@ -155,9 +155,10 @@ class FlowCuda
     P.zeta_c=sim_param->chiral_activity;
     P.el=sim_param->elastic_stress;
     P.xis=NULL;
-    if(sim_param->xi_wall_width>0)
+    P.xi_core=0; P.q2_core=0;
+    if(sim_param->xi_wall_width>0 || sim_param->xi_core_S>0)
       {
-        std::cout << "xi_wall_width is implemented on the CPU only.\nAborting the program.\n";
+        std::cout << "xi_wall_width and xi_core_S are implemented on the CPU only.\nAborting the program.\n";
         exit(1);
       }
     CUDA_CHECK(cudaMalloc(&sigma, 9*n*sizeof(double)));

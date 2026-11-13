@@ -23,9 +23,21 @@ struct FlowParams
   double zeta_c;//chiral activity: active stress -zeta_c*(eps.q-q.eps)/2, eps_ij=eps_ijz (10^6 Pa)
   double el;    //1, or 0 to drop the passive (elastic and flow-alignment) stress
   const double * xis; //flow-aligning parameter per site (xi_wall near the walls), or NULL: xi everywhere
+  double xi_core;     //flow-aligning parameter at the sites with tr Q^2 < q2_core (defect cores)
+  double q2_core;     //tr Q^2 = (3/2) S^2 for uniaxial Q; 0: no core mask
 };
 
-MARLICS_HD inline double site_xi(const FlowParams& F, long s) { return F.xis ? F.xis[s] : F.xi; }
+//Flow-aligning parameter at site s: xi_core in the defect cores (low order), else xis or xi.
+MARLICS_HD inline double site_xi(const FlowParams& F, long s, const double * Qij)
+{
+  if(F.q2_core>0)
+    {
+      const double * v=&Qij[5*s];
+      const double zz=-v[0]-v[3];
+      if(v[0]*v[0]+v[3]*v[3]+zz*zz+2*(v[1]*v[1]+v[2]*v[2]+v[4]*v[4])<F.q2_core) return F.xi_core;
+    }
+  return F.xis ? F.xis[s] : F.xi;
+}
 
 //Host only: whether the liquid crystal aligns with a shear flow, and at which angle from the flow
 //direction (cos 2 theta = 3S/((2+S) xi), Denniston, Orlandini and Yeomans 2001), or tumbles.
@@ -76,7 +88,7 @@ MARLICS_HD inline void full_tensor(const double * v, double M[3][3])
 MARLICS_HD inline void site_stress(const LatticeView& L, const FlowParams& F, const double * Qij, const double * k_i, int s, double sigma[9])
 {
   double dQ[15], g[15], q[3][3], h[3][3], A[3][3], qh=0;
-  const double xi=site_xi(F,s);
+  const double xi=site_xi(F,s,Qij);
   central_gradient(L,Qij,5,s,dQ);
   ldg_gradient_derivative(L.bulk,&Qij[5*s],dQ,g);
 
@@ -182,7 +194,7 @@ MARLICS_HD inline void stokes_mode(const LatticeView& L, double eta, int m0, int
 MARLICS_HD inline void site_flow_rhs(const LatticeView& L, const FlowParams& F, const double * Qij, const double * u, int s, double out[5])
 {
   double dQ[15], du[9], W[3][3], D[3][3], O[3][3], q[3][3], A[3][3], qW=0;
-  const double xi=site_xi(F,s);
+  const double xi=site_xi(F,s,Qij);
   central_gradient(L,Qij,5,s,dQ);
   central_gradient(L,u,3,s,du);                       //du[3*b+a] = d_b u_a
   full_tensor(&Qij[5*s],q);

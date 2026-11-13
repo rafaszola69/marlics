@@ -143,6 +143,8 @@ struct Simulation_Parameters
   double chiral_activity=0.; /* chiral active stress -chiral_activity*(eps.q-q.eps)/2, eps_ij=eps_ijz (10^6 Pa) */
   double elastic_stress=1.;  /* 1, or 0 to drop the passive stress from the flow (active stress only) */
   double xi_wall=0., xi_wall_width=0.; /* xi_wall at the bulk sites within xi_wall_width (nm) of a surface site */
+  double xi_wall_inner=0.;  /* ... and farther than xi_wall_inner (nm): a ring instead of a layer */
+  double xi_core=0., xi_core_S=0.; /* xi_core at the bulk sites with S < xi_core_S*S_eq (defect cores; S from tr Q^2) */
   double wall_velocity[3]={0.,0.,0.};  /* velocity of the upper wall (channel, slab), nm/us */
   int flow_solver=0;        /* confined geometries: 0 automatic, 1 direct, 2 iterative (flow_confined.h) */
   //Surface sites: "local" relaxes them with the local boundary condition (one-sided normal

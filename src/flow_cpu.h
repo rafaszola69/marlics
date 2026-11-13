@@ -26,7 +26,10 @@ class FlowCpu
     P.zeta_c=sim_param->chiral_activity;
     P.el=sim_param->elastic_stress;
     P.xis=NULL;
-    if(sim_param->xi_wall_width>0) wall_layer(sim_param->xi_wall,sim_param->xi_wall_width);
+    if(sim_param->xi_wall_width>0) wall_layer(sim_param->xi_wall,sim_param->xi_wall_width,sim_param->xi_wall_inner);
+    P.xi_core=sim_param->xi_core;
+    const double sc=sim_param->xi_core_S*L.bulk.S_eq;
+    P.q2_core=1.5*sc*sc;
     int axis;
     const double * U=sim_param->wall_velocity;
     if(WallStokes::detect(L,axis))
@@ -56,8 +59,15 @@ class FlowCpu
     flow_alignment_report(P.xi,L.bulk.S_eq);
     if(P.xis)
       {
-        std::cout << "  xi=" << xi_wall << " at the bulk sites within " << xi_wall_width << " nm of a surface site (" << n_wall << " sites):\n  ";
+        std::cout << "  xi=" << xi_wall << " at the bulk sites within " << xi_wall_width << " nm of a surface site";
+        if(xi_wall_inner>0) std::cout << " and farther than " << xi_wall_inner << " nm";
+        std::cout << " (" << n_wall << " sites):\n  ";
         flow_alignment_report(xi_wall,L.bulk.S_eq);
+      }
+    if(P.q2_core>0)
+      {
+        std::cout << "  xi=" << P.xi_core << " at the bulk sites with S < " << sim_param->xi_core_S << " S_eq (defect cores; S from tr Q^2):\n  ";
+        flow_alignment_report(P.xi_core,L.bulk.S_eq);
       }
   }
 
@@ -109,6 +119,7 @@ class FlowCpu
 
   //Velocity of the last solution (nm/us), 3 per site.
   const double * velocity() const { return u.data(); }
+  long wall_sites() const { return n_wall; }  //bulk sites with xi_wall
 
   //Confined geometries: the Lagrange-force solve (NULL otherwise).
   const ConfinedStokes * confined_solver() const { return confined; }
@@ -235,14 +246,14 @@ class FlowCpu
   const LatticeView L;
   FlowParams P;
   std::vector<double> xis;
-  double xi_wall=0, xi_wall_width=0;
+  double xi_wall=0, xi_wall_width=0, xi_wall_inner=0;
   long n_wall=0;
 
-  //Flow-aligning parameter xw at the bulk sites within distance w (nm) of a surface site, P.xi at the
-  //others (a sharp interface between two materials that differ only in xi).
-  void wall_layer(double xw, double w)
+  //Flow-aligning parameter xw at the bulk sites within distance w (nm) of a surface site and farther
+  //than w0, P.xi at the others (a sharp interface between two materials that differ only in xi).
+  void wall_layer(double xw, double w, double w0=0)
   {
-    xi_wall=xw; xi_wall_width=w;
+    xi_wall=xw; xi_wall_width=w; xi_wall_inner=w0;
     if(L.n_surface==0)
       {
         std::cout << "xi_wall_width needs a geometry with surface sites.\nAborting the program.\n";
@@ -264,7 +275,7 @@ class FlowCpu
             for(int a=0; a<3; a++) r2+=(c[a]-e[a])*h[a]*(c[a]-e[a])*h[a];
             d2=fmin(d2,r2);
           }
-        if(d2<=w*w) { xis[s]=xw; n_wall++; }
+        if(d2<=w*w && d2>w0*w0) { xis[s]=xw; n_wall++; }
       }
     P.xis=xis.data();
   }

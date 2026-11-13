@@ -9,7 +9,10 @@
 //    zeta>0 and the flow has a z component.
 //  - with elastic_stress 0 only the active stress drives the flow.
 //  - xi_wall: a layer wider than the disk is the same as xi_wall everywhere, xi_wall = xi changes
-//    nothing, and a thin layer differs from both uniform cases.
+//    nothing, and a thin layer differs from both uniform cases; xi_wall_inner 0 is the layer, and a
+//    ring has the sites of the outer layer that are not in the inner one.
+//  - xi_core: a threshold above every S is the same as xi_core everywhere, a zero threshold changes
+//    nothing, and the median S as threshold differs from both uniform cases.
 //  - hybrid_arc (disk): boundary 1 is the arc |phi| < pi*hybrid_arc around +x; with the same
 //    anchoring on both parts nothing changes, and homeotropic boundary 1 changes the flow.
 // Chiral activity (-zeta_c (eps q - q eps)/2):
@@ -26,6 +29,7 @@
 #include <cstring>
 #include <functional>
 #include <vector>
+#include <algorithm>
 
 static int failed=0;
 
@@ -126,6 +130,64 @@ static void wall_layer()
   check("xi_wall, layer wider than the disk = xi_wall everywhere", e_all<1e-13, "%.1e", e_all);
   check("xi_wall = xi: unchanged", e_same<1e-13, "%.1e", e_same);
   check("thin layer differs from both uniform cases, min(|r-r(0.7)|,|r-r(1)|) / |r(1)-r(0.7)|", fmin(d07,d1)>1e-3*d, "%.2f", fmin(d07,d1)/d);
+}
+
+//xi_wall_inner and xi_core in the same disk.
+static void ring_and_core()
+{
+  long nw=0;
+  auto run=[&](std::function<void(Simulation_Parameters&)> change){
+    driver * d=setup([&](Simulation_Parameters& p){ p.activity=0.01; p.xi=0.7;
+                                                    strcpy(p.initial_conditions,"random");
+                                                    p.rng_seed=11; p.ic_flag[4]=parameter_status::set; change(p); },
+                     "tests/inputs/flow_disk.txt");
+    GEOMETRY * g=d->LcS_Geometry;
+    const long n=(long)g->Nx*g->Ny*g->Nz;
+    std::vector<double> k(5*n);
+    CpuExec plain(g);
+    plain.fill_ki(k.data(),d->Qij);
+    FlowCpu flow(g,&d->sim_param);
+    flow.add(k.data(),d->Qij);
+    nw=flow.wall_sites();
+    std::vector<double> r(flow.velocity(),flow.velocity()+3*n);
+    r.insert(r.end(),k.begin(),k.end());
+    delete d;
+    return r; };
+  auto diff=[](const std::vector<double>& a, const std::vector<double>& b){
+    double e=0, m=0;
+    for(size_t i=0;i<a.size();i++) { e=fmax(e,fabs(a[i]-b[i])); m=fmax(m,fabs(a[i])); }
+    return e/m; };
+  std::vector<double> u07=run([](Simulation_Parameters&){}), u1=run([](Simulation_Parameters& p){ p.xi=1; });
+  std::vector<double> lay=run([](Simulation_Parameters& p){ p.xi_wall=1; p.xi_wall_width=20; });
+  const long n20=nw;
+  const double e0=diff(lay,run([](Simulation_Parameters& p){ p.xi_wall=1; p.xi_wall_width=20; p.xi_wall_inner=0; }));
+  run([](Simulation_Parameters& p){ p.xi_wall=1; p.xi_wall_width=10; });
+  const long n10=nw;
+  run([](Simulation_Parameters& p){ p.xi_wall=1; p.xi_wall_width=20; p.xi_wall_inner=10; });
+  check("xi_wall_inner 0 = layer", e0==0, "%.1e", e0);
+  check("ring 10-20 nm: sites = layer(20) - layer(10)", nw==n20-n10 && nw>0, "%.0f", (double)nw);
+  //S at the bulk sites of the random state, from tr Q^2, for the median threshold
+  driver * d=setup([&](Simulation_Parameters& p){ p.activity=0.01; p.xi=0.7; strcpy(p.initial_conditions,"random");
+                                                  p.rng_seed=11; p.ic_flag[4]=parameter_status::set; },
+                   "tests/inputs/flow_disk.txt");
+  const LatticeView L=d->LcS_Geometry->view();
+  std::vector<double> S;
+  for(long s=0; s<(long)L.Nx*L.Ny*L.Nz; s++) if(L.point_type[s]==1)
+    {
+      const double * v=&d->Qij[5*s];
+      const double zz=-v[0]-v[3];
+      S.push_back(sqrt((v[0]*v[0]+v[3]*v[3]+zz*zz+2*(v[1]*v[1]+v[2]*v[2]+v[4]*v[4]))/1.5)/L.bulk.S_eq);
+    }
+  delete d;
+  std::sort(S.begin(),S.end());
+  const double med=S[S.size()/2], smax=S.back();
+  const double e_all=diff(u1,run([&](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=1.01*smax; }));
+  const double e_none=diff(u07,run([](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=0; }));
+  std::vector<double> um=run([&](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=med; });
+  const double d07=diff(u07,um), d1=diff(u1,um), dd=diff(u07,u1);
+  check("xi_core_S above every S = xi_core everywhere", e_all<1e-13, "%.1e", e_all);
+  check("xi_core_S 0: unchanged", e_none==0, "%.1e", e_none);
+  check("median S as threshold differs from both uniform cases", fmin(d07,d1)>1e-3*dd && S.front()<med, "%.2f", fmin(d07,d1)/dd);
 }
 
 //Amplitude ratio of a director perturbation (bend: varying along the director x; splay: along y).
@@ -365,6 +427,7 @@ int main()
   fprintf(stderr,"test_active: activity\n");
   linearity();
   wall_layer();
+  ring_and_core();
   hybrid_disk();
   instabilities();
   self_propulsion();
