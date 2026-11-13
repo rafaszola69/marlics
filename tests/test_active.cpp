@@ -11,8 +11,8 @@
 //  - xi_wall: a layer wider than the disk is the same as xi_wall everywhere, xi_wall = xi changes
 //    nothing, and a thin layer differs from both uniform cases; xi_wall_inner 0 is the layer, and a
 //    ring has the sites of the outer layer that are not in the inner one.
-//  - xi_core: a threshold above every S is the same as xi_core everywhere, a zero threshold changes
-//    nothing, and the median S as threshold differs from both uniform cases.
+//  - xi_core: a threshold whose ramp (0.8 to 1 of it) lies above every S is the same as xi_core
+//    everywhere, a zero threshold changes nothing, and a ramp centred on the median S differs from both.
 //  - hybrid_arc (disk): boundary 1 is the arc |phi| < pi*hybrid_arc around +x; with the same
 //    anchoring on both parts nothing changes, and homeotropic boundary 1 changes the flow.
 // Chiral activity (-zeta_c (eps q - q eps)/2):
@@ -181,13 +181,13 @@ static void ring_and_core()
   delete d;
   std::sort(S.begin(),S.end());
   const double med=S[S.size()/2], smax=S.back();
-  const double e_all=diff(u1,run([&](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=1.01*smax; }));
+  const double e_all=diff(u1,run([&](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=1.3*smax; }));
   const double e_none=diff(u07,run([](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=0; }));
-  std::vector<double> um=run([&](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=med; });
+  std::vector<double> um=run([&](Simulation_Parameters& p){ p.xi_core=1; p.xi_core_S=med/0.9; });
   const double d07=diff(u07,um), d1=diff(u1,um), dd=diff(u07,u1);
   check("xi_core_S above every S = xi_core everywhere", e_all<1e-13, "%.1e", e_all);
   check("xi_core_S 0: unchanged", e_none==0, "%.1e", e_none);
-  check("median S as threshold differs from both uniform cases", fmin(d07,d1)>1e-3*dd && S.front()<med, "%.2f", fmin(d07,d1)/dd);
+  check("ramp centred on the median S differs from both uniform cases", fmin(d07,d1)>1e-3*dd, "%.2f", fmin(d07,d1)/dd);
 }
 
 //Amplitude ratio of a director perturbation (bend: varying along the director x; splay: along y).

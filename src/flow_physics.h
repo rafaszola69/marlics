@@ -23,20 +23,26 @@ struct FlowParams
   double zeta_c;//chiral activity: active stress -zeta_c*(eps.q-q.eps)/2, eps_ij=eps_ijz (10^6 Pa)
   double el;    //1, or 0 to drop the passive (elastic and flow-alignment) stress
   const double * xis; //flow-aligning parameter per site (xi_wall near the walls), or NULL: xi everywhere
-  double xi_core;     //flow-aligning parameter at the sites with tr Q^2 < q2_core (defect cores)
-  double q2_core;     //tr Q^2 = (3/2) S^2 for uniaxial Q; 0: no core mask
+  double xi_core;     //flow-aligning parameter in the defect cores
+  double s_core;      //order S (from tr Q^2 = (3/2) S^2) below which xi_core applies fully; 0: no core mask
 };
 
-//Flow-aligning parameter at site s: xi_core in the defect cores (low order), else xis or xi.
+//Flow-aligning parameter at site s: xis or xi, going over to xi_core in the defect cores, smoothly
+//(smoothstep in S from 0.8 s_core, xi_core, to s_core, outside value): a sharp switch makes the
+//right-hand side discontinuous and stalls the adaptive integrator.
 MARLICS_HD inline double site_xi(const FlowParams& F, long s, const double * Qij)
 {
-  if(F.q2_core>0)
+  const double x=F.xis ? F.xis[s] : F.xi;
+  if(F.s_core>0)
     {
       const double * v=&Qij[5*s];
       const double zz=-v[0]-v[3];
-      if(v[0]*v[0]+v[3]*v[3]+zz*zz+2*(v[1]*v[1]+v[2]*v[2]+v[4]*v[4])<F.q2_core) return F.xi_core;
+      const double S=sqrt((v[0]*v[0]+v[3]*v[3]+zz*zz+2*(v[1]*v[1]+v[2]*v[2]+v[4]*v[4]))/1.5);
+      double t=(S-0.8*F.s_core)/(0.2*F.s_core);
+      t=t<0 ? 0 : (t>1 ? 1 : t);
+      return F.xi_core+(x-F.xi_core)*t*t*(3-2*t);
     }
-  return F.xis ? F.xis[s] : F.xi;
+  return x;
 }
 
 //Host only: whether the liquid crystal aligns with a shear flow, and at which angle from the flow

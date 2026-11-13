@@ -153,8 +153,9 @@ Backflow ("flow stokes" in the input file):
 	                xi_wall_width (nm) of a surface site, xi elsewhere (a sharp interface); CPU only.
 	                xi_wall_inner (nm, default 0) excludes the sites closer than it: a ring.
 	    xi_core, xi_core_S (optional) flow-aligning parameter xi_core at the bulk sites with
-	                S < xi_core_S*S_eq, recomputed at every step from tr Q^2 = (3/2) S^2 (a mask that
-	                follows the defect cores; it takes precedence over xi_wall); CPU only.
+	                S < 0.8*xi_core_S*S_eq, going over smoothly (smoothstep in S) to the outside value
+	                at S = xi_core_S*S_eq; recomputed at every step from tr Q^2 = (3/2) S^2 (a mask
+	                that follows the defect cores; it takes precedence over xi_wall); CPU only.
 	                Checked by tests/test_active.cpp.
 	With the flow, the snapshots have three more columns, ux,uy,uz: the velocity (nm/us) of the
 	written state. Without it they are unchanged. The flow changes the dynamics, not the equilibrium states, so it needs a time

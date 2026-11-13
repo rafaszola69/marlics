@@ -28,8 +28,7 @@ class FlowCpu
     P.xis=NULL;
     if(sim_param->xi_wall_width>0) wall_layer(sim_param->xi_wall,sim_param->xi_wall_width,sim_param->xi_wall_inner);
     P.xi_core=sim_param->xi_core;
-    const double sc=sim_param->xi_core_S*L.bulk.S_eq;
-    P.q2_core=1.5*sc*sc;
+    P.s_core=sim_param->xi_core_S*L.bulk.S_eq;
     int axis;
     const double * U=sim_param->wall_velocity;
     if(WallStokes::detect(L,axis))
@@ -64,9 +63,10 @@ class FlowCpu
         std::cout << " (" << n_wall << " sites):\n  ";
         flow_alignment_report(xi_wall,L.bulk.S_eq);
       }
-    if(P.q2_core>0)
+    if(P.s_core>0)
       {
-        std::cout << "  xi=" << P.xi_core << " at the bulk sites with S < " << sim_param->xi_core_S << " S_eq (defect cores; S from tr Q^2):\n  ";
+        std::cout << "  xi=" << P.xi_core << " at the bulk sites with S < " << 0.8*sim_param->xi_core_S << " S_eq, going over smoothly to the outside value at "
+                  << sim_param->xi_core_S << " S_eq (defect cores; S from tr Q^2):\n  ";
         flow_alignment_report(P.xi_core,L.bulk.S_eq);
       }
   }
