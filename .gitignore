@@ -1,11 +1,15 @@
-build/
+# executables
 marlics
+marlics.exe
 marlics_debug
-*.o
-*.csv
-figs/
-homeotropic_droplets/runs/
-homeotropic_droplets/*.log
-build_gpu/
 marlics_gpu
+# build directories
+build/
+buildexe/
+build_gpu/
+*.o
+__pycache__/
+# simulation output
+*.csv
 !tests/gpu/custom.csv
+!examples/custom_boundary_sphere/sphere.csv

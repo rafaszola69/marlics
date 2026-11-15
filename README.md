@@ -1,7 +1,13 @@
-Welcome to MarLicS
-------------------
+Welcome to MarLicS 2.0
+----------------------
 
- Marlics is a software written in C++ to to solve either the Beris-Edwards equation of nematodynamics without flow, or to find minimum energy states of the Landau-de Gennes free energy with the (FIRE) engine. Marlics comes with the most common setups where these simulations are performed, such as confined slab cells and spherical liquid crystal droplets. Different simulations can be performed passing a file describing the system geometry. FInally, we provide the most common anchoring energies as boundary conditions, such as Rapini-Papoular and Founier-Galatola.
+Marlics is a finite-difference liquid crystal simulation package written in C++. It solves the Beris-Edwards equations of nematodynamics for the Landau-de Gennes Q tensor, or finds minimum-energy states of the Landau-de Gennes free energy with the FIRE minimizer. It comes with the most common setups, such as slab cells and spherical droplets, accepts any geometry described in a file, and provides the most common anchoring energies, such as Rapini-Papoular and Fournier-Galatola.
+
+Version 2.0 runs the same code on the CPU (OpenMP) or on an NVIDIA GPU (CUDA), simulates two-dimensional systems, couples Q to the flow of the liquid crystal (backflow, Stokes limit) and simulates active nematics, in 2D and 3D. Input files of version 1.x run unchanged. See CHANGELOG.md for everything that is new.
+
+Authors: Renato F. de Souza, Eric K. Omori and Rafael S. Zola.
+
+If you use Marlics, please cite: R. F. de Souza, E. K. Omori and R. S. Zola, "Marlics: A finite difference liquid crystal simulation package", Comput. Phys. Commun. 277, 108379 (2022), https://doi.org/10.1016/j.cpc.2022.108379.
 
 The program takes as input a descriptive file giving the simulations parameters and initial conditions generating a series of different snapshots. Some examples of these input files can be found in the examples folder.
 
@@ -184,7 +190,6 @@ GPU (NVIDIA, CUDA):
 	twice as fast per step, but its force error (~1e-6) slows down FIRE near min_force 1e-6; use it only
 	with looser tolerances.
 	GPU memory: FIRE needs about 3 arrays of 5*Nx*Ny*Nz doubles (301^3: ~4 GB), DP5 about 9 (301^3: ~10 GB).
-	cuda/ holds the first CUDA port (2022, float only), kept as a reference.
 
 Windows_makefile -> a makefile to compile a windows executable under a GNU environment
 
